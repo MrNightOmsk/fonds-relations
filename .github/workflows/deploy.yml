@@ -23,14 +23,60 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          # Переходим в директорию проекта
           cd /var/www/fonds-relations
-          git pull origin main
+          
+          # Останавливаем все контейнеры Docker
+          docker stop $(docker ps -aq) || true
+          
+          # Удаляем все остановленные контейнеры
+          docker rm $(docker ps -aq) || true
+          
+          # Удаляем неиспользуемые образы
+          docker image prune -af
+          
+          # Проверяем, что порт 8000 свободен
+          if lsof -i:8000; then
+            echo "Port 8000 is still in use. Trying to find and kill the process..."
+            fuser -k 8000/tcp || true
+            sleep 5
+          fi
+          
+          # Обновляем код
+          git fetch origin main
+          git reset --hard origin/main
+          
           cd backend
-          cp .env.example .env
+          
+          # Создаем .env из примера если его нет
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
+          
           # Обновляем переменные окружения из секретов
           sed -i "s/your-secret-key-here/${{ secrets.APP_SECRET_KEY }}/g" .env
           sed -i "s/your-email@gmail.com/${{ secrets.SMTP_USER }}/g" .env
           sed -i "s/your-app-specific-password/${{ secrets.SMTP_PASSWORD }}/g" .env
-          # Перезапускаем контейнеры
-          docker-compose down
-          docker-compose up -d --build 
+          
+          # Запускаем контейнеры
+          docker-compose down -v
+          docker-compose up -d --build
+          
+          # Ждем 10 секунд, чтобы контейнеры успели запуститься
+          sleep 10
+          
+          # Проверяем, что контейнеры запущены
+          if ! docker ps | grep -q backend-backend-1; then
+            echo "Backend container is not running!"
+            docker-compose logs
+            exit 1
+          fi
+          
+          # Проверяем, что API отвечает
+          if ! curl -f http://localhost:8000/api/v1/; then
+            echo "API is not responding!"
+            docker-compose logs
+            exit 1
+          fi
+          
+          echo "Deployment successful!" 
