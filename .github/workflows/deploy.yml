@@ -73,11 +73,24 @@ jobs:
           fi
           
           # Проверяем, что API отвечает и возвращает правильный статус
-          response=$(curl -s http://localhost:8000/api/v1/)
-          if ! echo "$response" | grep -q '"status":"ok"'; then
-            echo "API health check failed! Response: $response"
+          echo "Checking API health..."
+          response=$(curl -s http://localhost:8000/docs)
+          if [ $? -ne 0 ]; then
+            echo "Failed to connect to API!"
             docker-compose logs
             exit 1
+          fi
+          
+          response=$(curl -s http://localhost:8000/api/v1)
+          if ! echo "$response" | grep -q '"status":"ok"'; then
+            echo "API health check failed! Response: $response"
+            echo "Trying alternative path..."
+            response=$(curl -s http://localhost:8000/api/v1/)
+            if ! echo "$response" | grep -q '"status":"ok"'; then
+              echo "API health check failed on both paths! Response: $response"
+              docker-compose logs
+              exit 1
+            fi
           fi
           
           echo "Deployment successful!" 
