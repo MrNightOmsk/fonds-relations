@@ -8,15 +8,11 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем poetry
-RUN pip install poetry
-
-# Копируем файлы зависимостей
-COPY pyproject.toml poetry.lock ./
+# Копируем файл с зависимостями
+COPY requirements.txt .
 
 # Устанавливаем зависимости
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
+RUN pip install -r requirements.txt
 
 # Копируем код приложения и тесты
 COPY . .
