@@ -1,15 +1,11 @@
-import secrets
-from typing import List, Union, Optional
-from pydantic import AnyHttpUrl, validator
+from typing import List, Optional, Union
+
+from pydantic import AnyHttpUrl, EmailStr, validator
 from pydantic_settings import BaseSettings
-from urllib.parse import quote_plus
+
 
 class Settings(BaseSettings):
     PROJECT_NAME: str
-    VERSION: str = "1.0.0"
-    API_V1_STR: str = "/api/v1"
-    
-    # BACKEND_CORS_ORIGINS is a comma-separated list of origins
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
@@ -20,39 +16,64 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
+    # JWT
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+
     # PostgreSQL
     POSTGRES_SERVER: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_PORT: str
-    
-    @property
-    def SQLALCHEMY_DATABASE_URI(self) -> str:
-        password = quote_plus(self.POSTGRES_PASSWORD)
-        return f"postgresql://{self.POSTGRES_USER}:{password}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-    
-    # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
-    ALGORITHM: str = "HS256"
+    DATABASE_URI: Optional[str] = None
 
-    # First superuser
-    FIRST_SUPERUSER: str
-    FIRST_SUPERUSER_PASSWORD: str
-    FIRST_SUPERUSER_FULL_NAME: str
-    FIRST_SUPERUSER_ORGANIZATION: str
+    @validator("DATABASE_URI", pre=True)
+    def assemble_db_connection(cls, v: Optional[str], values: dict[str, any]) -> any:
+        if isinstance(v, str):
+            return v
+        return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
 
     # Elasticsearch
     ELASTICSEARCH_HOST: str
     ELASTICSEARCH_PORT: int
-    ELASTICSEARCH_SCHEME: str = "http"
-    ELASTICSEARCH_USER: Optional[str] = None
-    ELASTICSEARCH_PASSWORD: Optional[str] = None
-    ELASTICSEARCH_INDEX_PREFIX: str = "fonds_relations"
-    
+    ELASTICSEARCH_URI: Optional[str] = None
+
+    @validator("ELASTICSEARCH_URI", pre=True)
+    def assemble_elasticsearch_connection(cls, v: Optional[str], values: dict[str, any]) -> any:
+        if isinstance(v, str):
+            return v
+        return f"http://{values.get('ELASTICSEARCH_HOST')}:{values.get('ELASTICSEARCH_PORT')}"
+
+    # Email
+    SMTP_TLS: bool = True
+    SMTP_PORT: Optional[int] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[EmailStr] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+
+    @validator("EMAILS_FROM_NAME")
+    def get_project_name(cls, v: Optional[str], values: dict[str, any]) -> str:
+        if not v:
+            return values["PROJECT_NAME"]
+        return v
+
+    @validator("EMAILS_FROM_EMAIL")
+    def get_emails_from_email(cls, v: Optional[str], values: dict[str, any]) -> str:
+        if not v:
+            return values["SMTP_USER"]
+        return v
+
+    # First superuser
+    FIRST_SUPERUSER_EMAIL: EmailStr
+    FIRST_SUPERUSER_PASSWORD: str
+    FIRST_SUPERUSER_FUND: str
+
     class Config:
         case_sensitive = True
         env_file = ".env"
+
 
 settings = Settings() 

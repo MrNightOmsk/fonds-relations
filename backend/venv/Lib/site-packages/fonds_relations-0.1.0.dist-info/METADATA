@@ -1,9 +1,0 @@
-Metadata-Version: 2.2
-Name: fonds-relations
-Version: 0.1.0
-Requires-Dist: fastapi
-Requires-Dist: uvicorn
-Requires-Dist: sqlalchemy
-Requires-Dist: alembic
-Requires-Dist: pytest
-Dynamic: requires-dist

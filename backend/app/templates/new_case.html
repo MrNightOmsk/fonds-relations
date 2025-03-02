@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Новый случай нарушения</h1>
+<p>Добавлен новый случай нарушения:</p>
+
+<h2>Информация об игроке</h2>
+<ul>
+    <li>Имя: {{ player.full_name }}</li>
+    <li>Никнеймы:
+        <ul>
+            {% for nickname in player.nicknames %}
+            <li>{{ nickname.room }}: {{ nickname.nickname }}</li>
+            {% endfor %}
+        </ul>
+    </li>
+</ul>
+
+<h2>Детали нарушения</h2>
+<ul>
+    <li>Тип: {{ case.type }}</li>
+    <li>Описание: {{ case.description }}</li>
+    <li>Сумма: {{ case.amount if case.amount else "Не указана" }}</li>
+    <li>Статус: {{ case.status }}</li>
+    <li>Добавлено: {{ case.created_at.strftime("%d.%m.%Y %H:%M") }}</li>
+    <li>Добавил: {{ reported_by.fund_name }}</li>
+</ul>
+
+{% if case.evidences %}
+<h2>Доказательства</h2>
+<ul>
+    {% for evidence in case.evidences %}
+    <li>{{ evidence.type }}: {{ evidence.file_path }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<p>
+    <small>Это автоматическое уведомление. Пожалуйста, не отвечайте на него.</small>
+</p>
+{% endblock %} 
