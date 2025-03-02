@@ -101,7 +101,7 @@ class Player(PlayerBase):
     nicknames: List[PlayerNickname] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Расширенная информация об игроке
