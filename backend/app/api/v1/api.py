@@ -3,6 +3,11 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import login, users, players, cases, audit
 
 api_router = APIRouter()
+
+@api_router.get("/")
+def health_check():
+    return {"status": "ok", "message": "API is running"}
+
 api_router.include_router(login.router, tags=["login"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(players.router, prefix="/players", tags=["players"])

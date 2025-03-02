@@ -72,9 +72,10 @@ jobs:
             exit 1
           fi
           
-          # Проверяем, что API отвечает
-          if ! curl -f http://localhost:8000/api/v1/; then
-            echo "API is not responding!"
+          # Проверяем, что API отвечает и возвращает правильный статус
+          response=$(curl -s http://localhost:8000/api/v1/)
+          if ! echo "$response" | grep -q '"status":"ok"'; then
+            echo "API health check failed! Response: $response"
             docker-compose logs
             exit 1
           fi
