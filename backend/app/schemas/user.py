@@ -1,44 +1,39 @@
-from datetime import datetime
 from typing import Optional
-from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
 
 
-# Shared properties
+# Общие свойства
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
-    fund_name: Optional[str] = None
     is_active: Optional[bool] = True
     is_superuser: bool = False
 
 
-# Properties to receive via API on creation
+# Свойства для создания пользователя
 class UserCreate(UserBase):
     email: EmailStr
-    fund_name: str
     password: str
 
 
-# Properties to receive via API on update
+# Свойства для обновления пользователя
 class UserUpdate(UserBase):
     password: Optional[str] = None
 
 
+# Свойства, хранящиеся в БД
 class UserInDBBase(UserBase):
-    id: UUID
-    created_at: datetime
-    updated_at: datetime
+    id: Optional[int] = None
 
     class Config:
         from_attributes = True
 
 
-# Additional properties to return via API
+# Дополнительные свойства для возврата через API
 class User(UserInDBBase):
     pass
 
 
-# Additional properties stored in DB
+# Дополнительные свойства, хранящиеся в БД
 class UserInDB(UserInDBBase):
     hashed_password: str 

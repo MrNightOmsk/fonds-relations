@@ -1,47 +1,166 @@
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
-from app.models.player import Player
+from app.models.player import Player, PlayerContact, PlayerLocation, PlayerNickname
 from app.schemas.player import PlayerCreate, PlayerUpdate
 
 
 class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
-    def create_with_fund(
-        self, db: Session, *, obj_in: PlayerCreate, fund_id: int
+    def create_with_details(
+        self, db: Session, *, obj_in: PlayerCreate
     ) -> Player:
-        obj_in_data = obj_in.model_dump()
-        db_obj = Player(**obj_in_data, fund_id=fund_id)
+        db_obj = Player(
+            full_name=obj_in.full_name,
+            description=obj_in.description,
+            is_active=obj_in.is_active
+        )
+        db.add(db_obj)
+        db.flush()
+
+        # Create contacts
+        if obj_in.contacts:
+            for contact in obj_in.contacts:
+                db_contact = PlayerContact(
+                    player_id=db_obj.id,
+                    type=contact.type,
+                    value=contact.value,
+                    description=contact.description
+                )
+                db.add(db_contact)
+
+        # Create locations
+        if obj_in.locations:
+            for location in obj_in.locations:
+                db_location = PlayerLocation(
+                    player_id=db_obj.id,
+                    country=location.country,
+                    city=location.city,
+                    address=location.address
+                )
+                db.add(db_location)
+
+        # Create nicknames
+        if obj_in.nicknames:
+            for nickname in obj_in.nicknames:
+                db_nickname = PlayerNickname(
+                    player_id=db_obj.id,
+                    nickname=nickname.nickname,
+                    platform=nickname.platform
+                )
+                db.add(db_nickname)
+
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    def update_with_details(
+        self,
+        db: Session,
+        *,
+        db_obj: Player,
+        obj_in: Union[PlayerUpdate, Dict[str, Any]]
+    ) -> Player:
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.dict(exclude_unset=True)
+
+        # Update basic player info
+        for field in ["full_name", "description", "is_active"]:
+            if field in update_data:
+                setattr(db_obj, field, update_data[field])
+
+        # Update contacts
+        if "contacts" in update_data:
+            # Remove old contacts
+            db.query(PlayerContact).filter(
+                PlayerContact.player_id == db_obj.id
+            ).delete()
+            
+            # Add new contacts
+            for contact in update_data["contacts"]:
+                db_contact = PlayerContact(
+                    player_id=db_obj.id,
+                    type=contact["type"],
+                    value=contact["value"],
+                    description=contact.get("description")
+                )
+                db.add(db_contact)
+
+        # Update locations
+        if "locations" in update_data:
+            # Remove old locations
+            db.query(PlayerLocation).filter(
+                PlayerLocation.player_id == db_obj.id
+            ).delete()
+            
+            # Add new locations
+            for location in update_data["locations"]:
+                db_location = PlayerLocation(
+                    player_id=db_obj.id,
+                    country=location["country"],
+                    city=location.get("city"),
+                    address=location.get("address")
+                )
+                db.add(db_location)
+
+        # Update nicknames
+        if "nicknames" in update_data:
+            # Remove old nicknames
+            db.query(PlayerNickname).filter(
+                PlayerNickname.player_id == db_obj.id
+            ).delete()
+            
+            # Add new nicknames
+            for nickname in update_data["nicknames"]:
+                db_nickname = PlayerNickname(
+                    player_id=db_obj.id,
+                    nickname=nickname["nickname"],
+                    platform=nickname.get("platform")
+                )
+                db.add(db_nickname)
+
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
 
-    def get_multi_by_fund(
-        self, db: Session, *, fund_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Player]:
+    def get_by_nickname(
+        self, db: Session, *, nickname: str
+    ) -> Optional[Player]:
         return (
-            db.query(self.model)
-            .filter(Player.fund_id == fund_id)
-            .offset(skip)
-            .limit(limit)
-            .all()
+            db.query(Player)
+            .join(PlayerNickname)
+            .filter(PlayerNickname.nickname == nickname)
+            .first()
         )
 
-    def search(
-        self, db: Session, *, query: str, skip: int = 0, limit: int = 100
-    ) -> List[Player]:
+    def get_by_contact(
+        self, db: Session, *, contact_type: str, contact_value: str
+    ) -> Optional[Player]:
         return (
-            db.query(self.model)
+            db.query(Player)
+            .join(PlayerContact)
             .filter(
-                (Player.name.ilike(f"%{query}%")) |
-                (Player.nickname.ilike(f"%{query}%"))
+                PlayerContact.type == contact_type,
+                PlayerContact.value == contact_value
             )
-            .offset(skip)
-            .limit(limit)
-            .all()
+            .first()
         )
+
+    def get_by_location(
+        self, db: Session, *, country: str, city: Optional[str] = None
+    ) -> List[Player]:
+        query = (
+            db.query(Player)
+            .join(PlayerLocation)
+            .filter(PlayerLocation.country == country)
+        )
+        if city:
+            query = query.filter(PlayerLocation.city == city)
+        return query.all()
 
 
 player = CRUDPlayer(Player) 

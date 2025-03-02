@@ -1,33 +1,16 @@
-# Этап сборки
-FROM python:3.11-slim as builder
+FROM python:3.9
 
 WORKDIR /app
 
-# Установка системных зависимостей
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Установка зависимостей
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование файлов зависимостей
-COPY pyproject.toml .
+# Копирование кода приложения
+COPY . /app
 
-# Установка зависимостей в виртуальное окружение
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --no-cache-dir .
-
-# Финальный этап
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Копирование виртуального окружения из этапа сборки
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Копирование исходного кода
-COPY . .
+# Создание необходимых директорий
+RUN python setup.py
 
 # Запуск приложения
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 

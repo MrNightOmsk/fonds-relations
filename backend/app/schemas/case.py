@@ -1,15 +1,15 @@
+from typing import Optional, List
 from datetime import datetime
-from decimal import Decimal
-from typing import List, Optional
-from uuid import UUID
-
 from pydantic import BaseModel
 
+from app.schemas.player import Player
 
-# Evidence schemas
+
+# Базовые схемы для доказательств
 class CaseEvidenceBase(BaseModel):
     type: str
-    file_path: str
+    description: str
+    url: Optional[str] = None
 
 
 class CaseEvidenceCreate(CaseEvidenceBase):
@@ -21,36 +21,34 @@ class CaseEvidenceUpdate(CaseEvidenceBase):
 
 
 class CaseEvidence(CaseEvidenceBase):
-    id: UUID
-    case_id: UUID
-    uploaded_by_id: UUID
+    id: int
+    case_id: int
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
 
 
-# Case schemas
+# Базовые схемы для дел
 class CaseBase(BaseModel):
-    type: str
+    title: str
     description: str
-    amount: Optional[Decimal] = None
-    status: str = "open"
+    status: str
+    priority: Optional[str] = None
+    player_id: int
 
 
 class CaseCreate(CaseBase):
-    player_id: UUID
-    evidences: Optional[List[CaseEvidenceCreate]] = None
+    pass
 
 
 class CaseUpdate(CaseBase):
-    evidences: Optional[List[CaseEvidenceUpdate]] = None
+    pass
 
 
 class Case(CaseBase):
-    id: UUID
-    player_id: UUID
-    reported_by_id: UUID
+    id: int
     created_at: datetime
     updated_at: datetime
     evidences: List[CaseEvidence] = []
@@ -59,10 +57,9 @@ class Case(CaseBase):
         from_attributes = True
 
 
-# Case with player info
+# Расширенная схема дела с информацией об игроке
 class CaseWithPlayer(Case):
-    player_full_name: str
-    player_nicknames: List[str]
+    player: Player
 
     class Config:
         from_attributes = True 

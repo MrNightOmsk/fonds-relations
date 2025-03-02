@@ -1,14 +1,12 @@
-from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from pydantic import BaseModel
 
 
-# Contact schemas
+# Базовые схемы для контактов игрока
 class PlayerContactBase(BaseModel):
-    contact_type: str
-    contact_value: str
-    is_verified: bool = False
+    type: str
+    value: str
+    description: Optional[str] = None
 
 
 class PlayerContactCreate(PlayerContactBase):
@@ -20,21 +18,18 @@ class PlayerContactUpdate(PlayerContactBase):
 
 
 class PlayerContact(PlayerContactBase):
-    id: UUID
-    player_id: UUID
-    created_at: datetime
+    id: int
+    player_id: int
 
     class Config:
         from_attributes = True
 
 
-# Location schemas
+# Базовые схемы для местоположения игрока
 class PlayerLocationBase(BaseModel):
-    country: Optional[str] = None
+    country: str
     city: Optional[str] = None
     address: Optional[str] = None
-    postal_code: Optional[str] = None
-    is_verified: bool = False
 
 
 class PlayerLocationCreate(PlayerLocationBase):
@@ -46,20 +41,17 @@ class PlayerLocationUpdate(PlayerLocationBase):
 
 
 class PlayerLocation(PlayerLocationBase):
-    id: UUID
-    player_id: UUID
-    created_at: datetime
+    id: int
+    player_id: int
 
     class Config:
         from_attributes = True
 
 
-# Nickname schemas
+# Базовые схемы для никнеймов игрока
 class PlayerNicknameBase(BaseModel):
-    room: str
     nickname: str
-    discipline: Optional[str] = None
-    is_active: bool = True
+    platform: Optional[str] = None
 
 
 class PlayerNicknameCreate(PlayerNicknameBase):
@@ -71,64 +63,46 @@ class PlayerNicknameUpdate(PlayerNicknameBase):
 
 
 class PlayerNickname(PlayerNicknameBase):
-    id: UUID
-    player_id: UUID
-    created_at: datetime
+    id: int
+    player_id: int
 
     class Config:
         from_attributes = True
 
 
-# Player schemas
+# Базовые схемы для игрока
 class PlayerBase(BaseModel):
-    name: str
-    nickname: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
+    full_name: str
     description: Optional[str] = None
+    is_active: bool = True
 
 
 class PlayerCreate(PlayerBase):
-    fund_id: int
-    contacts: Optional[List[PlayerContactCreate]] = None
-    locations: Optional[List[PlayerLocationCreate]] = None
-    nicknames: Optional[List[PlayerNicknameCreate]] = None
+    pass
 
 
 class PlayerUpdate(PlayerBase):
-    contacts: Optional[List[PlayerContactUpdate]] = None
-    locations: Optional[List[PlayerLocationUpdate]] = None
-    nicknames: Optional[List[PlayerNicknameUpdate]] = None
+    pass
 
 
-class PlayerInDBBase(PlayerBase):
+class Player(PlayerBase):
     id: int
-    fund_id: int
-
-    class Config:
-        from_attributes = True
-
-
-class Player(PlayerInDBBase):
-    created_by_id: UUID
-    created_at: datetime
-    updated_at: datetime
     contacts: List[PlayerContact] = []
     locations: List[PlayerLocation] = []
     nicknames: List[PlayerNickname] = []
 
-
-# Search result schema
-class PlayerSearchResult(BaseModel):
-    id: UUID
-    full_name: str
-    nicknames: List[PlayerNickname]
-    cases_count: int
-    latest_case_date: Optional[datetime]
-
     class Config:
         from_attributes = True
 
 
-class PlayerInDB(PlayerInDBBase):
-    pass 
+# Схема для результатов поиска игрока
+class PlayerSearchResult(BaseModel):
+    id: int
+    full_name: str
+    description: Optional[str] = None
+    contacts: List[PlayerContact] = []
+    locations: List[PlayerLocation] = []
+    nicknames: List[PlayerNickname] = []
+
+    class Config:
+        from_attributes = True 

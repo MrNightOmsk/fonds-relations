@@ -1,25 +1,27 @@
+from typing import Optional, Dict, Any
 from datetime import datetime
-from typing import Any, Dict, Optional
-from uuid import UUID
-
 from pydantic import BaseModel
 
 
 # Audit log schemas
 class AuditLogBase(BaseModel):
-    entity_type: str
-    entity_id: UUID
     action: str
-    changes: Optional[Dict[str, Any]] = None
+    entity_type: str
+    entity_id: int
+    changes: Dict[str, Any]
+    user_id: int
 
 
 class AuditLogCreate(AuditLogBase):
     pass
 
 
+class AuditLogUpdate(AuditLogBase):
+    pass
+
+
 class AuditLog(AuditLogBase):
-    id: UUID
-    performed_by_id: UUID
+    id: int
     created_at: datetime
 
     class Config:
@@ -28,9 +30,10 @@ class AuditLog(AuditLogBase):
 
 # Notification subscription schemas
 class NotificationSubscriptionBase(BaseModel):
-    type: str
-    settings: Dict[str, Any]
-    is_active: bool = True
+    user_id: int
+    entity_type: str
+    entity_id: int
+    enabled: bool = True
 
 
 class NotificationSubscriptionCreate(NotificationSubscriptionBase):
@@ -42,8 +45,7 @@ class NotificationSubscriptionUpdate(NotificationSubscriptionBase):
 
 
 class NotificationSubscription(NotificationSubscriptionBase):
-    id: UUID
-    user_id: UUID
+    id: int
     created_at: datetime
     updated_at: datetime
 
@@ -53,7 +55,12 @@ class NotificationSubscription(NotificationSubscriptionBase):
 
 # Notification message schema
 class NotificationMessage(BaseModel):
-    type: str
+    id: int
+    user_id: int
     title: str
     message: str
-    data: Optional[Dict[str, Any]] = None 
+    read: bool = False
+    created_at: datetime
+
+    class Config:
+        from_attributes = True 

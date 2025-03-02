@@ -2,40 +2,47 @@ version: '3.8'
 
 services:
   backend:
-    build: 
-      context: ./backend
+    build:
+      context: backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file:
-      - backend/.env
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=app
+      - PROJECT_NAME=FondsRelations
+      - SECRET_KEY=your-secret-key-here
+      - API_V1_STR=/api/v1
+      - SERVER_HOST=http://localhost:8000
+      - BACKEND_CORS_ORIGINS=["http://localhost:8000"]
+      - SMTP_TLS=True
+      - SMTP_PORT=587
+      - SMTP_HOST=
+      - SMTP_USER=
+      - SMTP_PASSWORD=
+      - EMAILS_FROM_EMAIL=test@example.com
+      - EMAILS_FROM_NAME=Test
+      - EMAIL_RESET_TOKEN_EXPIRE_HOURS=48
+      - EMAIL_TEMPLATES_DIR=/app/app/email-templates/build
+      - EMAILS_ENABLED=False
+      - USERS_OPEN_REGISTRATION=True
+    volumes:
+      - ./backend:/app
     depends_on:
-      - postgres
-      - elasticsearch
-    restart: always
+      - db
 
-  postgres:
+  db:
     image: postgres:15
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - backend/.env
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=app
     ports:
       - "5432:5432"
-    restart: always
-
-  elasticsearch:
-    image: elasticsearch:8.11.3
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-    restart: always
 
 volumes:
-  postgres_data:
-  elasticsearch_data: 
+  postgres_data: 

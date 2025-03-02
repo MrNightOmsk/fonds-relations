@@ -1,59 +1,57 @@
-import uuid
-from datetime import datetime
-
-from sqlalchemy import Column, DateTime, ForeignKey, String, Integer
-from sqlalchemy.dialects.postgresql import UUID
+from typing import TYPE_CHECKING
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.db.base_class import Base
 
-
-class Player(Base):
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    nickname = Column(String, index=True, nullable=True)
-    email = Column(String, unique=True, index=True, nullable=True)
-    phone = Column(String, unique=True, index=True, nullable=True)
-    description = Column(String, nullable=True)
-    
-    fund_id = Column(Integer, ForeignKey("fund.id"))
-    fund = relationship("Fund", back_populates="players")
+if TYPE_CHECKING:
+    from .case import Case  # noqa: F401
 
 
 class PlayerContact(Base):
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    player_id = Column(UUID(as_uuid=True), ForeignKey("player.id"))
-    contact_type = Column(String(50), nullable=False)
-    contact_value = Column(String, nullable=False)
-    is_verified = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
+    __tablename__ = "player_contacts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(Integer, ForeignKey("players.id"))
+    type = Column(String, index=True)
+    value = Column(String)
+    description = Column(String, nullable=True)
+
     player = relationship("Player", back_populates="contacts")
 
 
 class PlayerLocation(Base):
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    player_id = Column(UUID(as_uuid=True), ForeignKey("player.id"))
-    country = Column(String(100))
-    city = Column(String(100))
-    address = Column(String)
-    postal_code = Column(String(20))
-    is_verified = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
+    __tablename__ = "player_locations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(Integer, ForeignKey("players.id"))
+    country = Column(String, index=True)
+    city = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+
     player = relationship("Player", back_populates="locations")
 
 
 class PlayerNickname(Base):
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    player_id = Column(UUID(as_uuid=True), ForeignKey("player.id"))
-    room = Column(String(100), nullable=False)
-    nickname = Column(String(100), nullable=False)
-    discipline = Column(String(50))
+    __tablename__ = "player_nicknames"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(Integer, ForeignKey("players.id"))
+    nickname = Column(String, index=True)
+    platform = Column(String, nullable=True)
+
+    player = relationship("Player", back_populates="nicknames")
+
+
+class Player(Base):
+    __tablename__ = "players"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, index=True)
+    description = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    player = relationship("Player", back_populates="nicknames") 
+
+    contacts = relationship("PlayerContact", back_populates="player")
+    locations = relationship("PlayerLocation", back_populates="player")
+    nicknames = relationship("PlayerNickname", back_populates="player")
+    cases = relationship("Case", back_populates="player") 

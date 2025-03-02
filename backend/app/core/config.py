@@ -1,11 +1,21 @@
-from typing import List, Optional, Union
+import secrets
+from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyHttpUrl, EmailStr, validator
-from pydantic_settings import BaseSettings
+from pydantic import AnyHttpUrl, BaseSettings, EmailStr, HttpUrl, PostgresDsn, validator
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str
+    API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # 60 minutes * 24 hours * 8 days = 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    # 60 minutes * 24 hours = 24 hours
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 24
+    SERVER_NAME: str = "FondsRelations"
+    SERVER_HOST: AnyHttpUrl = "http://localhost"
+    # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
+    # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
+    # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
@@ -16,36 +26,26 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    # JWT
-    SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    PROJECT_NAME: str = "FondsRelations"
 
-    # PostgreSQL
-    POSTGRES_SERVER: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    POSTGRES_PORT: str
-    DATABASE_URI: Optional[str] = None
+    POSTGRES_SERVER: str = "db"
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "app"
+    SQLALCHEMY_DATABASE_URI: Optional[PostgresDsn] = None
 
-    @validator("DATABASE_URI", pre=True)
-    def assemble_db_connection(cls, v: Optional[str], values: dict[str, any]) -> any:
+    @validator("SQLALCHEMY_DATABASE_URI", pre=True)
+    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
         if isinstance(v, str):
             return v
-        return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
+        return PostgresDsn.build(
+            scheme="postgresql",
+            user=values.get("POSTGRES_USER"),
+            password=values.get("POSTGRES_PASSWORD"),
+            host=values.get("POSTGRES_SERVER"),
+            path=f"/{values.get('POSTGRES_DB') or ''}",
+        )
 
-    # Elasticsearch
-    ELASTICSEARCH_HOST: str
-    ELASTICSEARCH_PORT: int
-    ELASTICSEARCH_URI: Optional[str] = None
-
-    @validator("ELASTICSEARCH_URI", pre=True)
-    def assemble_elasticsearch_connection(cls, v: Optional[str], values: dict[str, any]) -> any:
-        if isinstance(v, str):
-            return v
-        return f"http://{values.get('ELASTICSEARCH_HOST')}:{values.get('ELASTICSEARCH_PORT')}"
-
-    # Email
     SMTP_TLS: bool = True
     SMTP_PORT: Optional[int] = None
     SMTP_HOST: Optional[str] = None
@@ -53,27 +53,24 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     EMAILS_FROM_EMAIL: Optional[EmailStr] = None
     EMAILS_FROM_NAME: Optional[str] = None
+    EMAIL_TEMPLATES_DIR: str = "/app/app/email-templates/build"
+    EMAILS_ENABLED: bool = False
 
-    @validator("EMAILS_FROM_NAME")
-    def get_project_name(cls, v: Optional[str], values: dict[str, any]) -> str:
-        if not v:
-            return values["PROJECT_NAME"]
-        return v
+    @validator("EMAILS_ENABLED", pre=True)
+    def get_emails_enabled(cls, v: bool, values: Dict[str, Any]) -> bool:
+        return bool(
+            values.get("SMTP_HOST")
+            and values.get("SMTP_PORT")
+            and values.get("EMAILS_FROM_EMAIL")
+        )
 
-    @validator("EMAILS_FROM_EMAIL")
-    def get_emails_from_email(cls, v: Optional[str], values: dict[str, any]) -> str:
-        if not v:
-            return values["SMTP_USER"]
-        return v
+    USERS_OPEN_REGISTRATION: bool = True
 
-    # First superuser
-    FIRST_SUPERUSER_EMAIL: EmailStr
-    FIRST_SUPERUSER_PASSWORD: str
-    FIRST_SUPERUSER_FUND: str
+    FIRST_SUPERUSER: EmailStr = "admin@example.com"
+    FIRST_SUPERUSER_PASSWORD: str = "admin"
 
     class Config:
         case_sensitive = True
-        env_file = ".env"
 
 
 settings = Settings() 
