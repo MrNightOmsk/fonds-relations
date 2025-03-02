@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
-
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 # Contact schemas
@@ -82,10 +81,15 @@ class PlayerNickname(PlayerNicknameBase):
 
 # Player schemas
 class PlayerBase(BaseModel):
-    full_name: str
+    name: str
+    nickname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    description: Optional[str] = None
 
 
 class PlayerCreate(PlayerBase):
+    fund_id: int
     contacts: Optional[List[PlayerContactCreate]] = None
     locations: Optional[List[PlayerLocationCreate]] = None
     nicknames: Optional[List[PlayerNicknameCreate]] = None
@@ -97,17 +101,21 @@ class PlayerUpdate(PlayerBase):
     nicknames: Optional[List[PlayerNicknameUpdate]] = None
 
 
-class Player(PlayerBase):
-    id: UUID
+class PlayerInDBBase(PlayerBase):
+    id: int
+    fund_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class Player(PlayerInDBBase):
     created_by_id: UUID
     created_at: datetime
     updated_at: datetime
     contacts: List[PlayerContact] = []
     locations: List[PlayerLocation] = []
     nicknames: List[PlayerNickname] = []
-
-    class Config:
-        from_attributes = True
 
 
 # Search result schema
@@ -119,4 +127,8 @@ class PlayerSearchResult(BaseModel):
     latest_case_date: Optional[datetime]
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+
+class PlayerInDB(PlayerInDBBase):
+    pass 
