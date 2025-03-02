@@ -1,0 +1,14 @@
+[Unit]
+Description=Fonds Relations Frontend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/fonds_relations/frontend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target 
