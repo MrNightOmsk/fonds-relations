@@ -1,5 +1,7 @@
 # Fonds Relations
 
+[![Deploy to Production](https://github.com/MrNightOmsk/fonds-relations/actions/workflows/deploy.yml/badge.svg)](https://github.com/MrNightOmsk/fonds-relations/actions/workflows/deploy.yml)
+
 Система для управления фондами и их взаимосвязями.
 
 ## Технологический стек
