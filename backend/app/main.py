@@ -1,13 +1,22 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pathlib import Path
 
 from app.api.v1.api import api_router
 from app.core.config import settings
+from app.core.version import API_VERSION, LAST_UPDATE, RELEASE_NOTES
+from app.core.health import get_health_status
 
 app = FastAPI(
-    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    version=API_VERSION
 )
+
+# Настройка шаблонов
+templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
@@ -19,11 +28,23 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-@app.get("/")
-async def root():
+@app.get("/", response_class=HTMLResponse)
+async def root(request):
     """
-    Редирект на документацию API
+    Главная страница API с информацией о статусе и версии
     """
-    return RedirectResponse(url="/docs")
+    status = await get_health_status()
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "project_name": settings.PROJECT_NAME,
+            "api_version": API_VERSION,
+            "last_update": LAST_UPDATE,
+            "release_notes": RELEASE_NOTES,
+            "api_status": status["api_status"],
+            "db_status": status["db_status"]
+        }
+    )
 
 app.include_router(api_router, prefix=settings.API_V1_STR) 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project_name }} API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .status.ok {
+            background: #2ecc71;
+            color: white;
+        }
+        .status.error {
+            background: #e74c3c;
+            color: white;
+        }
+        .links {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .links a {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .links a:hover {
+            background: #2980b9;
+        }
+        .version {
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .status-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .status-item {
+            margin: 10px 0;
+        }
+        .status-label {
+            font-weight: bold;
+            color: #34495e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ project_name }} API</h1>
+        
+        <div class="status-container">
+            <div class="status-item">
+                <span class="status-label">Статус API:</span>
+                <span class="status {% if api_status %}ok{% else %}error{% endif %}">
+                    {% if api_status %}Работает{% else %}Ошибка{% endif %}
+                </span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">База данных:</span>
+                <span class="status {% if db_status %}ok{% else %}error{% endif %}">
+                    {% if db_status %}Подключена{% else %}Ошибка подключения{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="/docs">Swagger UI</a>
+            <a href="/redoc">ReDoc</a>
+            <a href="/api/v1">API Endpoints</a>
+        </div>
+
+        <div class="version">
+            <p>Версия API: {{ api_version }}</p>
+            <p>Последнее обновление: {{ last_update }}</p>
+            {% if release_notes %}
+            <details>
+                <summary>История изменений</summary>
+                <ul>
+                {% for version, notes in release_notes.items() %}
+                    <li><strong>{{ version }}</strong>: {{ notes }}</li>
+                {% endfor %}
+                </ul>
+            </details>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html> 
