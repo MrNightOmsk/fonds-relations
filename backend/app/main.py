@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -29,7 +29,7 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request):
+async def root(request: Request):
     """
     Главная страница API с информацией о статусе и версии
     """

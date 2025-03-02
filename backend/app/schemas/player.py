@@ -1,5 +1,6 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
+from datetime import datetime, date
 
 
 # Базовые схемы для контактов игрока
@@ -70,29 +71,45 @@ class PlayerNickname(PlayerNicknameBase):
         from_attributes = True
 
 
-# Базовые схемы для игрока
+# Общие атрибуты
 class PlayerBase(BaseModel):
     full_name: str
-    description: Optional[str] = None
-    is_active: bool = True
+    birth_date: Optional[date] = None
+    contact_info: Optional[Dict[str, Any]] = None
+    additional_info: Optional[Dict[str, Any]] = None
 
 
+# Свойства для создания
 class PlayerCreate(PlayerBase):
     pass
 
 
+# Свойства для обновления
 class PlayerUpdate(PlayerBase):
-    pass
+    full_name: Optional[str] = None
 
 
+# Свойства для чтения
 class Player(PlayerBase):
     id: int
+    created_by_user_id: int
+    created_by_fund_id: int
+    created_at: datetime
+    updated_at: datetime
     contacts: List[PlayerContact] = []
     locations: List[PlayerLocation] = []
     nicknames: List[PlayerNickname] = []
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+
+# Расширенная информация об игроке
+class PlayerDetail(Player):
+    fund_name: str
+    created_by_user_name: str
+    cases_count: int
+    open_cases_count: int
 
 
 # Схема для результатов поиска игрока

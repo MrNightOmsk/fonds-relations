@@ -1,39 +1,50 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
 
-# Общие свойства
+# Общие атрибуты
 class UserBase(BaseModel):
-    email: Optional[EmailStr] = None
-    is_active: Optional[bool] = True
-    is_superuser: bool = False
-
-
-# Свойства для создания пользователя
-class UserCreate(UserBase):
     email: EmailStr
+    full_name: Optional[str] = None
+    fund_id: int
+    role: str  # admin, manager
+    is_active: bool = True
+
+
+# Свойства для создания
+class UserCreate(UserBase):
     password: str
 
 
-# Свойства для обновления пользователя
-class UserUpdate(UserBase):
+# Свойства для обновления
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
     password: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
-# Свойства, хранящиеся в БД
-class UserInDBBase(UserBase):
-    id: Optional[int] = None
+# Свойства для чтения
+class User(UserBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
-# Дополнительные свойства для возврата через API
-class User(UserInDBBase):
-    pass
+# Токен
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 
-# Дополнительные свойства, хранящиеся в БД
-class UserInDB(UserInDBBase):
-    hashed_password: str 
+# Данные в токене
+class TokenPayload(BaseModel):
+    sub: int  # user_id
+    fund_id: int
+    role: str 

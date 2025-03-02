@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Date, DateTime, JSON
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.db.base_class import Base
 
@@ -47,11 +48,23 @@ class Player(Base):
     __tablename__ = "players"
 
     id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, index=True)
-    description = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True)
+    full_name = Column(String(255), nullable=False)
+    birth_date = Column(Date, nullable=True)
+    contact_info = Column(JSON, nullable=True)  # телефон, email, другие контакты
+    additional_info = Column(JSON, nullable=True)  # дополнительная информация
+    
+    created_by_user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    created_by_user = relationship("User", back_populates="created_players")
+    
+    created_by_fund_id = Column(Integer, ForeignKey("fund.id"), nullable=False)
+    created_by_fund = relationship("Fund")
+    
+    # Связи с другими таблицами
+    cases = relationship("Case", back_populates="player")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     contacts = relationship("PlayerContact", back_populates="player")
     locations = relationship("PlayerLocation", back_populates="player")
-    nicknames = relationship("PlayerNickname", back_populates="player")
-    cases = relationship("Case", back_populates="player") 
+    nicknames = relationship("PlayerNickname", back_populates="player") 
