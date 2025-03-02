@@ -17,5 +17,8 @@ RUN pip install -r requirements.txt
 # Копируем код приложения и тесты
 COPY . .
 
+# Добавляем текущую директорию в PYTHONPATH
+ENV PYTHONPATH=/app
+
 # Запускаем тесты
 CMD ["pytest", "-v", "--cov=app", "--cov-report=term-missing", "tests/"] 
