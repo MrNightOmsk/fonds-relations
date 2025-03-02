@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[HttpUrl] = None
 
     @validator("SENTRY_DSN", pre=True)
-    def sentry_dsn_can_be_blank(cls, v: str) -> Optional[str]:
-        if len(v) == 0:
+    def sentry_dsn_can_be_blank(cls, v: Optional[str]) -> Optional[str]:
+        if not v or (isinstance(v, str) and len(v) == 0):
             return None
         return v
 
