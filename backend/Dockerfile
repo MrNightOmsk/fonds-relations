@@ -13,4 +13,4 @@ COPY . /app
 RUN python setup.py
 
 # Запуск приложения
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", ".*", "--reload-include", "*.py"] 
