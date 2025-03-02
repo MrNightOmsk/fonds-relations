@@ -28,6 +28,7 @@ from app.schemas.audit import (
     NotificationSubscriptionUpdate,
     NotificationMessage,
 )
+from .msg import Msg
 
 __all__ = [
     # User schemas
@@ -66,4 +67,6 @@ __all__ = [
     "NotificationSubscriptionCreate",
     "NotificationSubscriptionUpdate",
     "NotificationMessage",
+    # Message schemas
+    "Msg",
 ] 
