@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Копируем файл с зависимостями
@@ -20,5 +21,19 @@ COPY . .
 # Добавляем текущую директорию в PYTHONPATH
 ENV PYTHONPATH=/app
 
+# Создаем скрипт для запуска тестов
+COPY <<EOF /app/run_tests.sh
+#!/bin/bash
+set -e
+
+# Ждем готовности сервисов
+python wait_for_services.py
+
 # Запускаем тесты
-CMD ["pytest", "-v", "--cov=app", "--cov-report=term-missing", "tests/"] 
+exec pytest -v --cov=app --cov-report=term-missing tests/
+EOF
+
+RUN chmod +x /app/run_tests.sh
+
+# Запускаем тесты
+CMD ["/app/run_tests.sh"] 

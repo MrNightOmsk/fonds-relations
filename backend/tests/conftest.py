@@ -15,8 +15,8 @@ from app.db.base import Base
 from app.main import app
 from app.models import User, Fund
 
-# Используем тестовую базу данных
-SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/test_fonds_relations"
+# Используем настройки из конфигурации
+SQLALCHEMY_DATABASE_URL = str(settings.SQLALCHEMY_DATABASE_URI).replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,

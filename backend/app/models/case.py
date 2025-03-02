@@ -11,7 +11,7 @@ from app.db.base import Base
 
 class Case(Base):
     id = Column(Integer, primary_key=True, index=True)
-    player_id = Column(Integer, ForeignKey("player.id"), nullable=False)
+    player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
     player = relationship("Player", back_populates="cases")
     
     title = Column(String(255), nullable=False)
