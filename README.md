@@ -1,6 +1,54 @@
 # Fonds Relations
 
-Система обмена информацией о недобросовестных игроках между покерными фондами.
+Система для управления фондами и их взаимосвязями.
+
+## Технологический стек
+
+- Backend: FastAPI (Python)
+- База данных: PostgreSQL
+- Поисковый движок: Elasticsearch
+- Контейнеризация: Docker и Docker Compose
+
+## Развертывание
+
+### Локальная разработка
+
+1. Клонировать репозиторий:
+```bash
+git clone https://github.com/MrNightOmsk/fonds-relations.git
+cd fonds-relations
+```
+
+2. Скопировать `.env.example` в `.env` и настроить переменные окружения:
+```bash
+cp backend/.env.example backend/.env
+```
+
+3. Запустить через Docker Compose:
+```bash
+docker-compose up --build
+```
+
+### Продакшен
+
+Приложение автоматически развертывается на продакшен-сервере при пуше в ветку `main`.
+
+## API Документация
+
+После запуска API документация доступна по адресам:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Структура проекта
+
+```
+.
+├── backend/          # Бэкенд приложение
+│   ├── app/         # Основной код приложения
+│   └── tests/       # Тесты
+├── docs/            # Документация проекта
+└── docker-compose.yml
+```
 
 ## О проекте
 
