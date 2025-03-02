@@ -1,7 +1,8 @@
 import secrets
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyHttpUrl, BaseSettings, EmailStr, HttpUrl, PostgresDsn, validator
+from pydantic import AnyHttpUrl, EmailStr, HttpUrl, PostgresDsn, validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -9,10 +10,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
-    # 60 minutes * 24 hours = 24 hours
-    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 24
-    SERVER_NAME: str = "FondsRelations"
-    SERVER_HOST: AnyHttpUrl = "http://localhost"
+    SERVER_NAME: str
+    SERVER_HOST: AnyHttpUrl
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
@@ -26,12 +25,19 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    PROJECT_NAME: str = "FondsRelations"
+    PROJECT_NAME: str
+    SENTRY_DSN: Optional[HttpUrl] = None
 
-    POSTGRES_SERVER: str = "db"
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "app"
+    @validator("SENTRY_DSN", pre=True)
+    def sentry_dsn_can_be_blank(cls, v: str) -> Optional[str]:
+        if len(v) == 0:
+            return None
+        return v
+
+    POSTGRES_SERVER: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
     SQLALCHEMY_DATABASE_URI: Optional[PostgresDsn] = None
 
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
@@ -40,11 +46,21 @@ class Settings(BaseSettings):
             return v
         return PostgresDsn.build(
             scheme="postgresql",
-            user=values.get("POSTGRES_USER"),
+            username=values.get("POSTGRES_USER"),
             password=values.get("POSTGRES_PASSWORD"),
             host=values.get("POSTGRES_SERVER"),
             path=f"/{values.get('POSTGRES_DB') or ''}",
         )
+
+    ELASTICSEARCH_HOST: str
+    ELASTICSEARCH_PORT: int
+    ELASTICSEARCH_URL: Optional[str] = None
+
+    @validator("ELASTICSEARCH_URL", pre=True)
+    def assemble_elasticsearch_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+        if isinstance(v, str):
+            return v
+        return f"http://{values.get('ELASTICSEARCH_HOST')}:{values.get('ELASTICSEARCH_PORT')}"
 
     SMTP_TLS: bool = True
     SMTP_PORT: Optional[int] = None
@@ -53,6 +69,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     EMAILS_FROM_EMAIL: Optional[EmailStr] = None
     EMAILS_FROM_NAME: Optional[str] = None
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
     EMAIL_TEMPLATES_DIR: str = "/app/app/email-templates/build"
     EMAILS_ENABLED: bool = False
 
