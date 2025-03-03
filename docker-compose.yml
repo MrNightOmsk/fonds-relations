@@ -31,7 +31,13 @@ services:
       - EMAILS_ENABLED=False
       - USERS_OPEN_REGISTRATION=True
     volumes:
-      - ./backend:/app
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/migrations:/app/migrations
+      - ./backend/tests:/app/tests
+      - ./backend/alembic.ini:/app/alembic.ini
+      - ./backend/requirements.txt:/app/requirements.txt
+      - ./backend/wait_for_services.py:/app/wait_for_services.py
     depends_on:
       - db
       - elasticsearch
