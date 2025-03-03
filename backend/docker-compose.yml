@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
@@ -58,7 +58,7 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - xpack.security.enabled=false
     ports:
-      - "9200:9200"
+      - "9201:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
