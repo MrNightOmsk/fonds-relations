@@ -132,20 +132,11 @@ def read_case(
         
         # Логирование для отладки
         logger.info(f"Current user role: {current_user.role}, fund_id: {current_user.fund_id}")
-        
-        # Проверяем наличие player и его created_by_fund_id
-        if not hasattr(case, 'player') or case.player is None:
-            logger.error(f"Case {case_id} has no player attached")
-            return JSONResponse(
-                status_code=404,
-                content={"detail": "Case not found"}
-            )
+        logger.info(f"Case created_by_fund_id: {case.created_by_fund_id}")
             
-        logger.info(f"Case player created_by_fund_id: {case.player.created_by_fund_id}")
-        
-        # Проверяем доступ: админ видит все кейсы, остальные - только своего фонда
-        if current_user.role != "admin" and case.player.created_by_fund_id != current_user.fund_id:
-            logger.error(f"Access denied: current_user.fund_id={current_user.fund_id}, case.player.created_by_fund_id={case.player.created_by_fund_id}")
+        # Проверяем принадлежность дела к фонду пользователя
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            logger.error(f"Access denied: current_user.fund_id={current_user.fund_id}, case.created_by_fund_id={case.created_by_fund_id}")
             return JSONResponse(
                 status_code=404,
                 content={"detail": "Case not found"}
