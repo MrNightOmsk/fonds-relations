@@ -23,15 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8001:8000"
-    volumes:
-      - ./app:/app/app
-      - ./alembic:/app/alembic
-      - ./migrations:/app/migrations
-      - ./tests:/app/tests
-      - ./alembic.ini:/app/alembic.ini
-      - ./requirements.txt:/app/requirements.txt
-      - ./wait_for_services.py:/app/wait_for_services.py
+      - "8000:8000"
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_USER=postgres
@@ -58,7 +50,7 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - xpack.security.enabled=false
     ports:
-      - "9201:9200"
+      - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:

@@ -67,7 +67,7 @@ jobs:
           sleep 10
           
           # Проверяем, что контейнеры запущены
-          if ! docker ps | grep -q backend-backend-1; then
+          if ! docker ps | grep -q backend-app-1; then
             echo "Backend container is not running!"
             docker-compose logs
             exit 1
