@@ -30,11 +30,11 @@ services:
       - EMAIL_TEMPLATES_DIR=/app/app/email-templates/build
       - EMAILS_ENABLED=False
       - USERS_OPEN_REGISTRATION=True
+    volumes:
+      - ./backend:/app
     depends_on:
-      db:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
+      - db
+      - elasticsearch
 
   db:
     image: postgres:15
@@ -44,13 +44,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=app
-    expose:
-      - "5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    ports:
+      - "5432:5432"
 
   elasticsearch:
     image: elasticsearch:7.17.0
@@ -62,12 +57,6 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl --silent --fail http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
-      start_period: 30s
 
 volumes:
   postgres_data:
