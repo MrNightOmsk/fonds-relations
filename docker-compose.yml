@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    command: sh -c "ls -la /app && cat /app/start.sh && /app/start.sh"
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_USER=postgres
@@ -39,8 +40,10 @@ services:
       - ./backend/requirements.txt:/app/requirements.txt
       - ./backend/wait_for_services.py:/app/wait_for_services.py
     depends_on:
-      - db
-      - elasticsearch
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
 
   db:
     image: postgres:15
@@ -52,6 +55,11 @@ services:
       - POSTGRES_DB=app
     expose:
       - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   elasticsearch:
     image: elasticsearch:7.17.0
@@ -63,6 +71,12 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
 
 volumes:
   postgres_data:
