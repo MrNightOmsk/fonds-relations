@@ -1,7 +1,6 @@
 from typing import Any
 
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from app.db.base_model import Base  # noqa
 
 
 @as_declarative()

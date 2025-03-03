@@ -16,6 +16,9 @@ def init_db(db: Session) -> None:
         user_in = schemas.UserCreate(
             email=settings.FIRST_SUPERUSER,
             password=settings.FIRST_SUPERUSER_PASSWORD,
-            is_superuser=True,
+            full_name="Initial Admin",
+            fund_id=None,  # Здесь нужно будет указать ID фонда
+            role="admin",
+            is_active=True
         )
         user = crud.user.create(db, obj_in=user_in)  # noqa: F841 

@@ -1,11 +1,15 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, String, Text, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+import uuid
 
 from app.db.base_class import Base
 
 
 class Fund(Base):
-    id = Column(Integer, primary_key=True, index=True)
+    __tablename__ = "funds"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     

@@ -1,6 +1,7 @@
 from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
+from uuid import UUID
 
 from app.schemas.player import Player
 
@@ -9,7 +10,7 @@ from app.schemas.player import Player
 class CaseBase(BaseModel):
     title: str
     description: Optional[str] = None
-    player_id: int
+    player_id: UUID
     status: str = "open"  # open, closed
 
 
@@ -27,11 +28,11 @@ class CaseUpdate(BaseModel):
 
 # Свойства для чтения
 class Case(CaseBase):
-    id: int
-    created_by_user_id: int
-    created_by_fund_id: int
+    id: UUID
+    created_by_user_id: UUID
+    created_by_fund_id: UUID
     closed_at: Optional[datetime] = None
-    closed_by_user_id: Optional[int] = None
+    closed_by_user_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
 
@@ -39,11 +40,8 @@ class Case(CaseBase):
         from_attributes = True
 
 
-# Расширенная информация о кейсе
-class CaseDetail(Case):
-    player_name: str
-    fund_name: str
-    created_by_user_name: str
+# Расширенная схема для чтения с дополнительными полями
+class CaseExtended(Case):
     closed_by_user_name: Optional[str] = None
 
 
@@ -51,7 +49,6 @@ class CaseDetail(Case):
 class CaseEvidenceBase(BaseModel):
     type: str
     description: str
-    url: Optional[str] = None
 
 
 class CaseEvidenceCreate(CaseEvidenceBase):
@@ -63,8 +60,8 @@ class CaseEvidenceUpdate(CaseEvidenceBase):
 
 
 class CaseEvidence(CaseEvidenceBase):
-    id: int
-    case_id: int
+    id: UUID
+    case_id: UUID
     created_at: datetime
     updated_at: datetime
 

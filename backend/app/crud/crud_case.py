@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -10,11 +11,14 @@ from app.schemas.case import CaseCreate, CaseUpdate
 
 class CRUDCase(CRUDBase[Case, CaseCreate, CaseUpdate]):
     def create_with_player(
-        self, db: Session, *, obj_in: CaseCreate, player_id: int
+        self, db: Session, *, obj_in: CaseCreate, player_id: UUID, user_id: UUID, fund_id: UUID
     ) -> Case:
-        obj_in_data = obj_in.dict()
+        obj_in_data = obj_in.model_dump()
         obj_in_data["player_id"] = player_id
+        obj_in_data["created_by_user_id"] = user_id
+        obj_in_data["created_by_fund_id"] = fund_id
         obj_in_data["created_at"] = datetime.utcnow()
+        obj_in_data["updated_at"] = datetime.utcnow()
         db_obj = Case(**obj_in_data)
         db.add(db_obj)
         db.commit()
@@ -22,7 +26,7 @@ class CRUDCase(CRUDBase[Case, CaseCreate, CaseUpdate]):
         return db_obj
 
     def get_multi_by_player(
-        self, db: Session, *, player_id: int, skip: int = 0, limit: int = 100
+        self, db: Session, *, player_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[Case]:
         return (
             db.query(self.model)

@@ -12,11 +12,18 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
         return db.query(User).filter(User.email == email).first()
 
+    def get_multi_by_fund(self, db: Session, *, fund_id: Any, skip: int = 0, limit: int = 100):
+        """Получить список пользователей, принадлежащих к указанному фонду"""
+        return db.query(User).filter(User.fund_id == fund_id).offset(skip).limit(limit).all()
+
     def create(self, db: Session, *, obj_in: UserCreate) -> User:
         db_obj = User(
             email=obj_in.email,
             hashed_password=get_password_hash(obj_in.password),
-            is_superuser=obj_in.is_superuser,
+            full_name=obj_in.full_name,
+            fund_id=obj_in.fund_id,
+            role=obj_in.role,
+            is_active=obj_in.is_active if hasattr(obj_in, "is_active") else True
         )
         db.add(db_obj)
         db.commit()
@@ -48,7 +55,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return user.is_active
 
     def is_superuser(self, user: User) -> bool:
-        return user.is_superuser
+        return user.role == "admin"
 
 
 user = CRUDUser(User) 

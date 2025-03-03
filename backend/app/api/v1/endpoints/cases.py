@@ -1,5 +1,6 @@
-from typing import Any, List
+from typing import Any, List, Optional
 from datetime import datetime
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -15,89 +16,135 @@ def read_cases(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    player_id: Optional[str] = None,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Retrieve cases.
     """
-    cases = crud.case.get_multi(db, skip=skip, limit=limit)
-    return cases
+    if player_id:
+        try:
+            player_id_uuid = uuid.UUID(str(player_id))
+            cases = crud.case.get_multi_by_player(
+                db=db, player_id=player_id_uuid, skip=skip, limit=limit
+            )
+            return cases
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid player ID format")
+    else:
+        cases = crud.case.get_multi(db, skip=skip, limit=limit)
+        return cases
 
 
-@router.post("/", response_model=schemas.Case)
+@router.post("/", response_model=schemas.Case, status_code=201)
 def create_case(
     *,
     db: Session = Depends(deps.get_db),
     case_in: schemas.CaseCreate,
-    player_id: int,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Create new case.
     """
-    player = crud.player.get(db=db, id=player_id)
-    if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
-    case = crud.case.create_with_player(db=db, obj_in=case_in, player_id=player_id)
-    return case
+    try:
+        # Преобразуем player_id в UUID, если он передан в виде строки
+        player_id = uuid.UUID(str(case_in.player_id))
+        player = crud.player.get(db=db, id=player_id)
+        if not player:
+            raise HTTPException(status_code=404, detail="Player not found")
+        case = crud.case.create_with_player(
+            db=db, 
+            obj_in=case_in, 
+            player_id=player_id,
+            user_id=current_user.id,
+            fund_id=current_user.fund_id
+        )
+        return case
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid player ID format")
 
 
 @router.put("/{case_id}", response_model=schemas.Case)
 def update_case(
     *,
     db: Session = Depends(deps.get_db),
-    case_id: int,
+    case_id: uuid.UUID,
     case_in: schemas.CaseUpdate,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Update a case.
     """
-    case = crud.case.get(db=db, id=case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-    case = crud.case.update(db=db, db_obj=case, obj_in=case_in)
-    return case
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Проверка принадлежности кейса к фонду пользователя
+        if current_user.role != "admin" and case.player.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        # Нельзя обновлять закрытый кейс
+        if case.status == "closed":
+            raise HTTPException(status_code=400, detail="Cannot update a closed case")
+            
+        case = crud.case.update(db=db, db_obj=case, obj_in=case_in)
+        return case
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid case ID format")
 
 
 @router.get("/{case_id}", response_model=schemas.Case)
 def read_case(
     *,
     db: Session = Depends(deps.get_db),
-    case_id: int,
+    case_id: uuid.UUID,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Get case by ID.
     """
-    case = crud.case.get(db=db, id=case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return case
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        # Проверяем доступ: админ видит все кейсы, остальные - только своего фонда
+        if current_user.role != "admin" and case.player.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        return case
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Invalid case ID format")
 
 
-@router.delete("/{case_id}", response_model=schemas.Case)
+@router.delete("/{case_id}", status_code=204)
 def delete_case(
     *,
     db: Session = Depends(deps.get_db),
-    case_id: int,
+    case_id: uuid.UUID,
     current_user: models.User = Depends(deps.get_current_active_superuser),
-) -> Any:
+) -> None:
     """
     Delete a case.
     """
-    case = crud.case.get(db=db, id=case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-    case = crud.case.remove(db=db, id=case_id)
-    return case
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        crud.case.remove(db=db, id=case_id_uuid)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Invalid case ID format")
 
 
 @router.get("/by-player/{player_id}", response_model=List[schemas.Case])
 def read_cases_by_player(
     *,
     db: Session = Depends(deps.get_db),
-    player_id: int,
+    player_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     current_user: models.User = Depends(deps.get_current_active_user),
@@ -105,10 +152,14 @@ def read_cases_by_player(
     """
     Get cases by player ID.
     """
-    cases = crud.case.get_multi_by_player(
-        db=db, player_id=player_id, skip=skip, limit=limit
-    )
-    return cases
+    try:
+        player_id_uuid = uuid.UUID(str(player_id))
+        cases = crud.case.get_multi_by_player(
+            db=db, player_id=player_id_uuid, skip=skip, limit=limit
+        )
+        return cases
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid player ID format")
 
 
 @router.get("/by-status/{status}", response_model=List[schemas.Case])
@@ -127,23 +178,28 @@ def read_cases_by_status(
     return cases
 
 
-@router.put("/{case_id}/status", response_model=schemas.Case)
-def update_case_status(
+@router.put("/{case_id}/close", response_model=schemas.Case)
+def close_case(
     *,
     db: Session = Depends(deps.get_db),
-    case_id: int,
-    status: str,
-    notes: str = None,
+    case_id: uuid.UUID,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Update case status.
+    Close a case.
     """
-    case = crud.case.get(db=db, id=case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-    case = crud.case.update_status(db=db, db_obj=case, status=status, notes=notes)
-    return case
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Обновляем статус кейса на "closed"
+        case_data = {"status": "closed", "closed_at": datetime.utcnow(), "closed_by_user_id": current_user.id}
+        case = crud.case.update(db=db, db_obj=case, obj_in=case_data)
+        return case
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Invalid case ID format")
 
 
 @router.get("/by-date-range/", response_model=List[schemas.Case])

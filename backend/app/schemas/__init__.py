@@ -1,7 +1,8 @@
 from .fund import Fund, FundCreate, FundUpdate
-from .user import User, UserCreate, UserUpdate, Token, TokenPayload
+from .user import User, UserCreate, UserUpdate
+from .token import Token, TokenPayload
 from .player import Player, PlayerCreate, PlayerUpdate, PlayerDetail
-from .case import Case, CaseCreate, CaseUpdate, CaseDetail
+from .case import Case, CaseCreate, CaseUpdate, CaseExtended
 from app.schemas.player import (
     PlayerSearchResult,
     PlayerContact,
@@ -56,6 +57,7 @@ __all__ = [
     "Case",
     "CaseCreate",
     "CaseUpdate",
+    "CaseExtended",
     "CaseWithPlayer",
     "CaseEvidence",
     "CaseEvidenceCreate",

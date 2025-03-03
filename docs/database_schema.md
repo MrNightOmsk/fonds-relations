@@ -5,7 +5,7 @@
 ### Fund (Фонд)
 ```sql
 CREATE TABLE fund (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -16,11 +16,11 @@ CREATE TABLE fund (
 ### User (Пользователь)
 ```sql
 CREATE TABLE "user" (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
-    fund_id INTEGER REFERENCES fund(id),
+    fund_id UUID REFERENCES fund(id),
     role VARCHAR(50) NOT NULL, -- admin, manager
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -31,13 +31,13 @@ CREATE TABLE "user" (
 ### Player (Игрок)
 ```sql
 CREATE TABLE player (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name VARCHAR(255) NOT NULL,
     birth_date DATE,
     contact_info JSONB,  -- телефон, email, другие контакты
     additional_info JSONB,  -- дополнительная информация
-    created_by_user_id INTEGER REFERENCES "user"(id),
-    created_by_fund_id INTEGER REFERENCES fund(id),
+    created_by_user_id UUID REFERENCES "user"(id),
+    created_by_fund_id UUID REFERENCES fund(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -46,15 +46,15 @@ CREATE TABLE player (
 ### Case (Дело/Кейс)
 ```sql
 CREATE TABLE case (
-    id SERIAL PRIMARY KEY,
-    player_id INTEGER NOT NULL REFERENCES player(id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID NOT NULL REFERENCES player(id),
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(50) NOT NULL,  -- open, closed
-    created_by_user_id INTEGER REFERENCES "user"(id),
-    created_by_fund_id INTEGER REFERENCES fund(id),
+    created_by_user_id UUID REFERENCES "user"(id),
+    created_by_fund_id UUID REFERENCES fund(id),
     closed_at TIMESTAMP WITH TIME ZONE,
-    closed_by_user_id INTEGER REFERENCES "user"(id),
+    closed_by_user_id UUID REFERENCES "user"(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

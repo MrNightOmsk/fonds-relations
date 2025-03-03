@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -22,7 +23,7 @@ class FundUpdate(FundBase):
 
 # Свойства для чтения
 class Fund(FundBase):
-    id: int
+    id: UUID
     created_at: datetime
     updated_at: datetime
 

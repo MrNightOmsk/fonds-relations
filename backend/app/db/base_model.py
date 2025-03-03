@@ -11,4 +11,8 @@ class Base:
     # Generate __tablename__ automatically
     @declared_attr
     def __tablename__(cls) -> str:
+        # Если имя таблицы явно задано в классе, используем его
+        if hasattr(cls, '__tablename__'):
+            return cls.__tablename__
+        # Иначе используем имя класса в нижнем регистре
         return cls.__name__.lower() 

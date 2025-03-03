@@ -40,6 +40,36 @@ async def wait_for_postgres(host: str, port: int, user: str, password: str, data
                 password=password,
                 database=database
             )
+            
+            # Проверяем существует ли таблица fund
+            table_exists = await conn.fetchval(
+                "SELECT 1 FROM information_schema.tables WHERE table_name = 'fund' AND table_schema = 'public'"
+            )
+            
+            if table_exists:
+                print("Таблица fund найдена, выполняем миграцию для переименования в funds...")
+                # Переименовываем таблицу fund в funds
+                await conn.execute("ALTER TABLE IF EXISTS fund RENAME TO funds")
+                # Обновляем первичный ключ
+                await conn.execute("ALTER INDEX IF EXISTS fund_pkey RENAME TO funds_pkey")
+                # Обновляем уникальный индекс на name, если он существует
+                await conn.execute("ALTER INDEX IF EXISTS fund_name_key RENAME TO funds_name_key")
+                
+                # Обновляем внешние ключи в других таблицах
+                fk_tables = ['users', 'players', 'cases']
+                for table in fk_tables:
+                    table_exists = await conn.fetchval(
+                        f"SELECT 1 FROM information_schema.tables WHERE table_name = '{table}' AND table_schema = 'public'"
+                    )
+                    if table_exists:
+                        constraints = await conn.fetch(
+                            f"SELECT conname FROM pg_constraint WHERE conrelid = '{table}'::regclass AND contype = 'f' AND confrelid = 'funds'::regclass"
+                        )
+                        for constraint in constraints:
+                            await conn.execute(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {constraint['conname']}")
+                
+                print("Миграция успешно выполнена")
+            
             await conn.close()
             print("Successfully connected to PostgreSQL")
             return

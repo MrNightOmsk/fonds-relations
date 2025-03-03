@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Any, Union
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -13,8 +14,11 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
     ) -> Player:
         db_obj = Player(
             full_name=obj_in.full_name,
-            description=obj_in.description,
-            is_active=obj_in.is_active
+            birth_date=obj_in.birth_date,
+            contact_info=obj_in.contact_info,
+            additional_info=obj_in.additional_info,
+            created_by_user_id=obj_in.created_by_user_id,
+            created_by_fund_id=obj_in.created_by_fund_id
         )
         db.add(db_obj)
         db.flush()
@@ -47,7 +51,7 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
                 db_nickname = PlayerNickname(
                     player_id=db_obj.id,
                     nickname=nickname.nickname,
-                    platform=nickname.platform
+                    source=nickname.source
                 )
                 db.add(db_nickname)
 
@@ -68,7 +72,7 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
             update_data = obj_in.dict(exclude_unset=True)
 
         # Update basic player info
-        for field in ["full_name", "description", "is_active"]:
+        for field in ["full_name", "birth_date", "contact_info", "additional_info", "description", "is_active"]:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
 
@@ -161,6 +165,28 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
         if city:
             query = query.filter(PlayerLocation.city == city)
         return query.all()
+
+    def get_by_fund(
+        self, db: Session, *, fund_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[Player]:
+        return (
+            db.query(Player)
+            .filter(Player.created_by_fund_id == fund_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get_by_user(
+        self, db: Session, *, user_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[Player]:
+        return (
+            db.query(Player)
+            .filter(Player.created_by_user_id == user_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
 
 player = CRUDPlayer(Player) 

@@ -1,6 +1,7 @@
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime, date
+from uuid import UUID
 
 
 # Базовые схемы для контактов игрока
@@ -19,8 +20,10 @@ class PlayerContactUpdate(PlayerContactBase):
 
 
 class PlayerContact(PlayerContactBase):
-    id: int
-    player_id: int
+    id: UUID
+    player_id: UUID
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -28,7 +31,7 @@ class PlayerContact(PlayerContactBase):
 
 # Базовые схемы для местоположения игрока
 class PlayerLocationBase(BaseModel):
-    country: str
+    country: Optional[str] = None
     city: Optional[str] = None
     address: Optional[str] = None
 
@@ -42,8 +45,10 @@ class PlayerLocationUpdate(PlayerLocationBase):
 
 
 class PlayerLocation(PlayerLocationBase):
-    id: int
-    player_id: int
+    id: UUID
+    player_id: UUID
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -52,7 +57,7 @@ class PlayerLocation(PlayerLocationBase):
 # Базовые схемы для никнеймов игрока
 class PlayerNicknameBase(BaseModel):
     nickname: str
-    platform: Optional[str] = None
+    source: Optional[str] = None
 
 
 class PlayerNicknameCreate(PlayerNicknameBase):
@@ -64,8 +69,10 @@ class PlayerNicknameUpdate(PlayerNicknameBase):
 
 
 class PlayerNickname(PlayerNicknameBase):
-    id: int
-    player_id: int
+    id: UUID
+    player_id: UUID
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -81,7 +88,11 @@ class PlayerBase(BaseModel):
 
 # Свойства для создания
 class PlayerCreate(PlayerBase):
-    pass
+    created_by_user_id: Optional[UUID] = None
+    created_by_fund_id: Optional[UUID] = None
+    contacts: Optional[List[PlayerContactCreate]] = None
+    locations: Optional[List[PlayerLocationCreate]] = None
+    nicknames: Optional[List[PlayerNicknameCreate]] = None
 
 
 # Свойства для обновления
@@ -91,9 +102,9 @@ class PlayerUpdate(PlayerBase):
 
 # Свойства для чтения
 class Player(PlayerBase):
-    id: int
-    created_by_user_id: int
-    created_by_fund_id: int
+    id: UUID
+    created_by_user_id: UUID
+    created_by_fund_id: UUID
     created_at: datetime
     updated_at: datetime
     contacts: List[PlayerContact] = []
@@ -114,7 +125,7 @@ class PlayerDetail(Player):
 
 # Схема для результатов поиска игрока
 class PlayerSearchResult(BaseModel):
-    id: int
+    id: UUID
     full_name: str
     description: Optional[str] = None
     contacts: List[PlayerContact] = []
