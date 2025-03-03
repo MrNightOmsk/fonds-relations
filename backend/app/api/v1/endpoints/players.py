@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 from app import crud, models, schemas
 from app.api import deps
@@ -109,16 +110,29 @@ def read_player(
     """
     Get player by ID.
     """
+    import logging
+    import traceback
+    
+    logger = logging.getLogger("app")
+    
     try:
-        import logging
-        import traceback
-        logger = logging.getLogger("app")
-        
         player_id_uuid = uuid.UUID(str(player_id))
+    except ValueError:
+        logger.error(f"Invalid player ID format: {player_id}")
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Invalid player ID format"}
+        )
+        
+    try:
         player = crud.player.get(db=db, id=player_id_uuid)
+        
         if not player:
             logger.error(f"Player not found: {player_id}")
-            raise HTTPException(status_code=404, detail="Player not found")
+            return JSONResponse(
+                status_code=404,
+                content={"detail": "Player not found"}
+            )
         
         # Логирование для отладки
         logger.info(f"Current user role: {current_user.role}, fund_id: {current_user.fund_id}")
@@ -127,16 +141,19 @@ def read_player(
         # Проверяем принадлежность игрока к фонду пользователя
         if current_user.role != "admin" and player.created_by_fund_id != current_user.fund_id:
             logger.error(f"Access denied: current_user.fund_id={current_user.fund_id}, player.created_by_fund_id={player.created_by_fund_id}")
-            raise HTTPException(status_code=404, detail="Player not found")
+            return JSONResponse(
+                status_code=404,
+                content={"detail": "Player not found"}
+            )
             
         return player
-    except ValueError:
-        logger.error(f"Invalid player ID format: {player_id}")
-        raise HTTPException(status_code=404, detail="Invalid player ID format")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
+        )
 
 
 @router.delete("/{player_id}", status_code=204)
