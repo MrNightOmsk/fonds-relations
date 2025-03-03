@@ -30,8 +30,6 @@ services:
       - EMAIL_TEMPLATES_DIR=/app/app/email-templates/build
       - EMAILS_ENABLED=False
       - USERS_OPEN_REGISTRATION=True
-    volumes:
-      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy
