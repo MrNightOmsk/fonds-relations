@@ -71,6 +71,22 @@ npm run dev
 npm run build
 ```
 
+## Настройка Git
+
+Для работы с репозиторием используется SSH-подключение. Чтобы настроить:
+
+1. Создайте SSH-ключ:
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+2. Добавьте публичный ключ в GitHub (Settings -> SSH and GPG keys)
+
+3. Клонируйте репозиторий:
+```bash
+git clone git@github.com:MrNightOmsk/fonds-relations.git
+```
+
 ## Лицензия
 
 MIT 
