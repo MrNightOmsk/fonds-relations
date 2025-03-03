@@ -17,8 +17,10 @@ depends_on = ${repr(depends_on)}
 
 
 def upgrade() -> None:
+    """Применяет изменения к базе данных при миграции вперед."""
     ${upgrades if upgrades else "pass"}
 
 
 def downgrade() -> None:
+    """Откатывает изменения в базе данных при миграции назад."""
     ${downgrades if downgrades else "pass"} 

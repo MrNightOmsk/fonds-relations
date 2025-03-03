@@ -1,3 +1,8 @@
+-- НЕ ИСПОЛЬЗУЕТСЯ. 
+-- Этот скрипт заменен системой миграций Alembic.
+-- См. директорию backend/alembic/versions для текущих миграций.
+
+/*
 -- Переименование таблицы fund в funds
 ALTER TABLE fund RENAME TO funds;
 
@@ -16,4 +21,5 @@ ADD CONSTRAINT players_created_by_fund_id_fkey FOREIGN KEY (created_by_fund_id) 
 
 ALTER TABLE cases
 DROP CONSTRAINT IF EXISTS cases_created_by_fund_id_fkey,
-ADD CONSTRAINT cases_created_by_fund_id_fkey FOREIGN KEY (created_by_fund_id) REFERENCES funds(id); 
+ADD CONSTRAINT cases_created_by_fund_id_fkey FOREIGN KEY (created_by_fund_id) REFERENCES funds(id);
+*/ 

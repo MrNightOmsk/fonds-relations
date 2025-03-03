@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import os
 from asyncpg import connect, CannotConnectNowError
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import ConnectionError as ESConnectionError
@@ -32,7 +33,7 @@ async def wait_for_postgres(host: str, port: int, user: str, password: str, data
             
             await conn.close()
             
-            # Теперь подключаемся к созданной базе данных
+            # Теперь подключаемся к созданной базе данных для проверки соединения
             conn = await connect(
                 host=host,
                 port=port,
@@ -41,37 +42,13 @@ async def wait_for_postgres(host: str, port: int, user: str, password: str, data
                 database=database
             )
             
-            # Проверяем существует ли таблица fund
-            table_exists = await conn.fetchval(
-                "SELECT 1 FROM information_schema.tables WHERE table_name = 'fund' AND table_schema = 'public'"
-            )
-            
-            if table_exists:
-                print("Таблица fund найдена, выполняем миграцию для переименования в funds...")
-                # Переименовываем таблицу fund в funds
-                await conn.execute("ALTER TABLE IF EXISTS fund RENAME TO funds")
-                # Обновляем первичный ключ
-                await conn.execute("ALTER INDEX IF EXISTS fund_pkey RENAME TO funds_pkey")
-                # Обновляем уникальный индекс на name, если он существует
-                await conn.execute("ALTER INDEX IF EXISTS fund_name_key RENAME TO funds_name_key")
-                
-                # Обновляем внешние ключи в других таблицах
-                fk_tables = ['users', 'players', 'cases']
-                for table in fk_tables:
-                    table_exists = await conn.fetchval(
-                        f"SELECT 1 FROM information_schema.tables WHERE table_name = '{table}' AND table_schema = 'public'"
-                    )
-                    if table_exists:
-                        constraints = await conn.fetch(
-                            f"SELECT conname FROM pg_constraint WHERE conrelid = '{table}'::regclass AND contype = 'f' AND confrelid = 'funds'::regclass"
-                        )
-                        for constraint in constraints:
-                            await conn.execute(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {constraint['conname']}")
-                
-                print("Миграция успешно выполнена")
-            
+            # Проверяем соединение
+            await conn.execute("SELECT 1")
             await conn.close()
+            
             print("Successfully connected to PostgreSQL")
+            
+            # Миграции Alembic будут запущены отдельно в start.sh
             return
         except (CannotConnectNowError, OSError) as e:
             last_exception = e
@@ -79,9 +56,11 @@ async def wait_for_postgres(host: str, port: int, user: str, password: str, data
             await asyncio.sleep(1)
             attempt += 1
     
-    print(f"Could not connect to PostgreSQL after {max_attempts} attempts")
+    # Если мы здесь, то все попытки подключения не удались
+    print(f"Failed to connect to PostgreSQL after {max_attempts} attempts")
     print(f"Last exception: {str(last_exception)}")
     sys.exit(1)
+
 
 async def wait_for_elasticsearch(host: str, port: int, max_attempts: int = 60):
     attempt = 0
@@ -89,10 +68,10 @@ async def wait_for_elasticsearch(host: str, port: int, max_attempts: int = 60):
     
     while attempt < max_attempts:
         try:
-            es = AsyncElasticsearch([{'host': host, 'port': port, 'scheme': 'http'}])
-            await es.ping()
-            print("Successfully connected to Elasticsearch")
+            es = AsyncElasticsearch([f"http://{host}:{port}"])
+            await es.info()
             await es.close()
+            print("Successfully connected to Elasticsearch")
             return
         except ESConnectionError as e:
             last_exception = e
@@ -100,26 +79,31 @@ async def wait_for_elasticsearch(host: str, port: int, max_attempts: int = 60):
             await asyncio.sleep(1)
             attempt += 1
     
-    print(f"Could not connect to Elasticsearch after {max_attempts} attempts")
+    # Если мы здесь, то все попытки подключения не удались
+    print(f"Failed to connect to Elasticsearch after {max_attempts} attempts")
     print(f"Last exception: {str(last_exception)}")
     sys.exit(1)
 
+
 async def main():
     # Параметры подключения из переменных окружения
-    pg_host = 'db'
-    pg_port = 5432
-    pg_user = 'postgres'
-    pg_password = 'postgres'
-    pg_database = 'test_fonds_relations'
+    postgres_host = os.environ.get("POSTGRES_SERVER", "localhost")
+    postgres_port = int(os.environ.get("POSTGRES_PORT", "5432"))
+    postgres_user = os.environ.get("POSTGRES_USER", "postgres")
+    postgres_password = os.environ.get("POSTGRES_PASSWORD", "postgres")
+    postgres_db = os.environ.get("POSTGRES_DB", "app")
     
-    es_host = 'elasticsearch'
-    es_port = 9200
+    elasticsearch_host = os.environ.get("ELASTICSEARCH_HOST", "localhost")
+    elasticsearch_port = int(os.environ.get("ELASTICSEARCH_PORT", "9200"))
     
-    await asyncio.gather(
-        wait_for_postgres(pg_host, pg_port, pg_user, pg_password, pg_database),
-        wait_for_elasticsearch(es_host, es_port)
-    )
-    print("All services are ready!")
+    # Ожидание готовности сервисов
+    await wait_for_postgres(postgres_host, postgres_port, postgres_user, postgres_password, postgres_db)
+    try:
+        await wait_for_elasticsearch(elasticsearch_host, elasticsearch_port)
+    except Exception as e:
+        print(f"Warning: Elasticsearch is not available: {str(e)}")
+        print("Continuing without Elasticsearch...")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main()) 
