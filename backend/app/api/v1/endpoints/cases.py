@@ -106,18 +106,31 @@ def read_case(
     Get case by ID.
     """
     try:
+        import logging
+        logger = logging.getLogger("app")
+        
         case_id_uuid = uuid.UUID(str(case_id))
         case = crud.case.get(db=db, id=case_id_uuid)
         if not case:
+            logger.error(f"Case not found: {case_id}")
             raise HTTPException(status_code=404, detail="Case not found")
-            
+        
+        # Логирование для отладки
+        logger.info(f"Current user role: {current_user.role}, fund_id: {current_user.fund_id}")
+        logger.info(f"Case player created_by_fund_id: {case.player.created_by_fund_id}")
+        
         # Проверяем доступ: админ видит все кейсы, остальные - только своего фонда
         if current_user.role != "admin" and case.player.created_by_fund_id != current_user.fund_id:
+            logger.error(f"Access denied: current_user.fund_id={current_user.fund_id}, case.player.created_by_fund_id={case.player.created_by_fund_id}")
             raise HTTPException(status_code=404, detail="Case not found")
             
         return case
     except ValueError:
+        logger.error(f"Invalid case ID format: {case_id}")
         raise HTTPException(status_code=404, detail="Invalid case ID format")
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{case_id}", status_code=204)

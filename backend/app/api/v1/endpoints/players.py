@@ -110,18 +110,31 @@ def read_player(
     Get player by ID.
     """
     try:
+        import logging
+        logger = logging.getLogger("app")
+        
         player_id_uuid = uuid.UUID(str(player_id))
         player = crud.player.get(db=db, id=player_id_uuid)
         if not player:
+            logger.error(f"Player not found: {player_id}")
             raise HTTPException(status_code=404, detail="Player not found")
+        
+        # Логирование для отладки
+        logger.info(f"Current user role: {current_user.role}, fund_id: {current_user.fund_id}")
+        logger.info(f"Player created_by_fund_id: {player.created_by_fund_id}")
             
         # Проверяем принадлежность игрока к фонду пользователя
         if current_user.role != "admin" and player.created_by_fund_id != current_user.fund_id:
+            logger.error(f"Access denied: current_user.fund_id={current_user.fund_id}, player.created_by_fund_id={player.created_by_fund_id}")
             raise HTTPException(status_code=404, detail="Player not found")
             
         return player
     except ValueError:
+        logger.error(f"Invalid player ID format: {player_id}")
         raise HTTPException(status_code=422, detail="Invalid player ID format")
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{player_id}", status_code=204)
