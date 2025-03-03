@@ -111,6 +111,7 @@ def read_player(
     """
     try:
         import logging
+        import traceback
         logger = logging.getLogger("app")
         
         player_id_uuid = uuid.UUID(str(player_id))
@@ -131,9 +132,10 @@ def read_player(
         return player
     except ValueError:
         logger.error(f"Invalid player ID format: {player_id}")
-        raise HTTPException(status_code=422, detail="Invalid player ID format")
+        raise HTTPException(status_code=404, detail="Invalid player ID format")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

@@ -107,6 +107,7 @@ def read_case(
     """
     try:
         import logging
+        import traceback
         logger = logging.getLogger("app")
         
         case_id_uuid = uuid.UUID(str(case_id))
@@ -117,6 +118,12 @@ def read_case(
         
         # Логирование для отладки
         logger.info(f"Current user role: {current_user.role}, fund_id: {current_user.fund_id}")
+        
+        # Проверяем наличие player и его created_by_fund_id
+        if not hasattr(case, 'player') or case.player is None:
+            logger.error(f"Case {case_id} has no player attached")
+            raise HTTPException(status_code=404, detail="Case not found")
+            
         logger.info(f"Case player created_by_fund_id: {case.player.created_by_fund_id}")
         
         # Проверяем доступ: админ видит все кейсы, остальные - только своего фонда
@@ -130,6 +137,7 @@ def read_case(
         raise HTTPException(status_code=404, detail="Invalid case ID format")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
