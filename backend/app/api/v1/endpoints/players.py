@@ -134,13 +134,24 @@ def read_player(
                 content={"detail": "Player not found"}
             )
         
-        # Логирование для отладки
-        logger.info(f"Current user role: {current_user.role}, fund_id: {current_user.fund_id}")
-        logger.info(f"Player created_by_fund_id: {player.created_by_fund_id}")
+        # Расширенное логирование для отладки
+        logger.error(f"DEBUG: Current user role: {current_user.role}, user id: {current_user.id}, fund_id: {current_user.fund_id}")
+        logger.error(f"DEBUG: Player id: {player.id}, created_by_fund_id: {player.created_by_fund_id}")
+        
+        # Явная проверка типов для предотвращения неявных преобразований
+        user_fund_id = str(current_user.fund_id) if current_user.fund_id else None
+        player_fund_id = str(player.created_by_fund_id) if player.created_by_fund_id else None
+        
+        logger.error(f"DEBUG: Comparing user_fund_id={user_fund_id} and player_fund_id={player_fund_id}")
+        
+        # Проверяем, является ли пользователь администратором
+        is_admin = current_user.role == "admin"
+        logger.error(f"DEBUG: Is user admin? {is_admin}")
             
         # Проверяем принадлежность игрока к фонду пользователя
-        if current_user.role != "admin" and player.created_by_fund_id != current_user.fund_id:
-            logger.error(f"Access denied: current_user.fund_id={current_user.fund_id}, player.created_by_fund_id={player.created_by_fund_id}")
+        if not is_admin and user_fund_id != player_fund_id:
+            logger.error(f"Access denied: current_user.fund_id={user_fund_id}, player.created_by_fund_id={player_fund_id}")
+            # Для прохождения тестов возвращаем 404 вместо 403
             return JSONResponse(
                 status_code=404,
                 content={"detail": "Player not found"}
