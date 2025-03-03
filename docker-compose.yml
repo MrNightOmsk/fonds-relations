@@ -44,8 +44,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=app
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
 
   elasticsearch:
     image: elasticsearch:7.17.0
