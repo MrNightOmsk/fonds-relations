@@ -46,7 +46,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const isAuthenticated = computed(() => authStore.isAuthenticated);
-const isAdmin = computed(() => authStore.user?.role === 'admin');
+const isAdmin = computed(() => authStore.isAdmin);
 const userName = computed(() => authStore.user?.full_name || authStore.user?.email || '');
 
 const logout = () => {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiClient from './config';
 
 const API_URL = '/api/v1';
 
@@ -22,20 +23,16 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
   formData.append('username', credentials.username);
   formData.append('password', credentials.password);
 
-  const response = await axios.post<LoginResponse>(`${API_URL}/login/access-token`, formData);
+  // Для логина используем обычный axios, так как токена еще нет
+  const response = await axios.post<LoginResponse>(`/api/v1/login/access-token`, formData);
   return response.data;
 };
 
 /**
  * Получает информацию о текущем пользователе
- * @param token JWT токен
  * @returns Информация о пользователе
  */
-export const getCurrentUser = async (token: string) => {
-  const response = await axios.get(`${API_URL}/users/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
+export const getCurrentUser = async () => {
+  const response = await apiClient.get(`/users/me`);
   return response.data;
 }; 

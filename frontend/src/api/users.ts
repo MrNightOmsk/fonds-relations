@@ -1,75 +1,88 @@
 import { useApiClient } from '@/composables/useApiClient';
-import type { User, CreateUserRequest, UpdateUserRequest } from '@/types/models';
+import type { User } from '@/types/models';
 
 export function useUsersApi() {
   const api = useApiClient();
-  const baseUrl = '/api/v1/users';
-
-  const getUsers = async (): Promise<User[]> => {
-    try {
-      const response = await api.get(baseUrl);
-      return response.data;
-    } catch (error) {
-      console.error('Ошибка при получении пользователей:', error);
-      throw error;
-    }
-  };
-
-  const getUserById = async (id: string): Promise<User> => {
-    try {
-      const response = await api.get(`${baseUrl}/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Ошибка при получении пользователя ${id}:`, error);
-      throw error;
-    }
-  };
-
-  const createUser = async (userData: CreateUserRequest): Promise<User> => {
-    try {
-      const response = await api.post(baseUrl, userData);
-      return response.data;
-    } catch (error) {
-      console.error('Ошибка при создании пользователя:', error);
-      throw error;
-    }
-  };
-
-  const updateUser = async (id: string, userData: UpdateUserRequest): Promise<User> => {
-    try {
-      const response = await api.put(`${baseUrl}/${id}`, userData);
-      return response.data;
-    } catch (error) {
-      console.error(`Ошибка при обновлении пользователя ${id}:`, error);
-      throw error;
-    }
-  };
-
-  const deleteUser = async (id: string): Promise<void> => {
-    try {
-      await api.delete(`${baseUrl}/${id}`);
-    } catch (error) {
-      console.error(`Ошибка при удалении пользователя ${id}:`, error);
-      throw error;
-    }
-  };
-
-  const toggleUserStatus = async (id: string, isActive: boolean): Promise<User> => {
-    try {
-      const response = await api.patch(`${baseUrl}/${id}/status`, { is_active: isActive });
-      return response.data;
-    } catch (error) {
-      console.error(`Ошибка при изменении статуса пользователя ${id}:`, error);
-      throw error;
-    }
-  };
+  const baseUrl = '/users';
 
   return {
-    getUsers,
-    getUserById,
-    createUser,
-    updateUser,
-    deleteUser,
-    toggleUserStatus
+    /**
+     * Получить список всех пользователей
+     */
+    async getUsers() {
+      try {
+        console.log('Запрос списка пользователей: ' + baseUrl);
+        const response = await api.get<User[]>(baseUrl);
+        return response.data;
+      } catch (error) {
+        console.error('Ошибка при получении списка пользователей:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Получить пользователя по ID
+     */
+    async getUserById(id: number) {
+      try {
+        const response = await api.get<User>(`${baseUrl}/${id}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при получении пользователя с ID ${id}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Создать нового пользователя
+     */
+    async createUser(userData: any) {
+      try {
+        const response = await api.post<User>(baseUrl, userData);
+        return response.data;
+      } catch (error) {
+        console.error('Ошибка при создании пользователя:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Обновить данные пользователя
+     */
+    async updateUser(id: number, userData: any) {
+      try {
+        const response = await api.put<User>(`${baseUrl}/${id}`, userData);
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при обновлении пользователя с ID ${id}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Удалить пользователя
+     */
+    async deleteUser(id: number) {
+      try {
+        const response = await api.delete<{ success: boolean }>(`${baseUrl}/${id}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при удалении пользователя с ID ${id}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Изменить статус активности пользователя
+     */
+    async toggleUserStatus(id: number, isActive: boolean) {
+      try {
+        const response = await api.patch<User>(`${baseUrl}/${id}/toggle-status`, { is_active: isActive });
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при изменении статуса пользователя с ID ${id}:`, error);
+        throw error;
+      }
+    }
   };
 } 

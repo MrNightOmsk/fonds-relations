@@ -1,13 +1,18 @@
-from typing import Any, List
+from typing import Any, List, Dict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app import crud, models, schemas
 from app.api import deps
 
 router = APIRouter()
+
+
+class FundsList(BaseModel):
+    funds: List[schemas.Fund]
 
 
 @router.get("/", response_model=List[schemas.Fund])
@@ -20,10 +25,25 @@ def read_funds(
     """
     Retrieve funds.
     """
-    if current_user.role != "admin":
-        # Если пользователь не админ, возвращаем только его фонд
-        return [crud.fund.get(db=db, id=current_user.fund_id)]
-    return crud.fund.get_multi(db, skip=skip, limit=limit)
+    try:
+        result = []
+        if current_user.role != "admin":
+            # Если пользователь не админ, возвращаем только его фонд
+            if current_user.fund_id:
+                fund = crud.fund.get(db=db, id=current_user.fund_id)
+                if fund:
+                    result = [fund]
+        else:
+            funds = crud.fund.get_multi(db, skip=skip, limit=limit)
+            # Проверяем, что все элементы в списке являются объектами Fund
+            result = [f for f in funds if f is not None]
+        
+        # Преобразуем SQLAlchemy объекты в словари для успешной сериализации
+        from fastapi.encoders import jsonable_encoder
+        return jsonable_encoder(result)
+    except Exception as e:
+        print(f"Error in read_funds: {str(e)}")
+        return []
 
 
 @router.post("/", response_model=schemas.Fund, status_code=201)

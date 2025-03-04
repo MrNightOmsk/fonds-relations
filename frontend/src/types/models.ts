@@ -18,6 +18,16 @@ export interface Fund {
   updated_at: string;
 }
 
+export interface Player {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  created_by_fund_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreateUserRequest {
   email: string;
   password: string;
@@ -44,6 +54,47 @@ export interface CreateFundRequest {
 export interface UpdateFundRequest {
   name?: string;
   description?: string;
+}
+
+export interface CreatePlayerRequest {
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface UpdatePlayerRequest {
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
+// Типы для кейса
+export interface Case {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  player_id: string;
+  created_by_fund_id: string;
+  created_by_user_id?: string;
+  created_at: string;
+  updated_at?: string;
+  closed_at?: string;
+  closed_by_user_id?: string;
+}
+
+export interface CaseCreate {
+  title: string;
+  description: string;
+  player_id: string;
+  status: string;
+}
+
+export interface CaseUpdate {
+  title?: string;
+  description?: string;
+  player_id?: string;
+  status?: string;
 }
 
 export interface ApiResponse<T> {

@@ -1,5 +1,7 @@
 # Docker Compose configuration for Fonds Relations project
 
+version: '3'
+
 services:
   backend:
     build:
@@ -7,7 +9,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    command: sh -c "ls -la /app && cat /app/start.sh && /app/start.sh"
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_USER=postgres
@@ -17,7 +18,7 @@ services:
       - SECRET_KEY=your-secret-key-here
       - API_V1_STR=/api/v1
       - SERVER_HOST=http://localhost:8000
-      - BACKEND_CORS_ORIGINS=["http://localhost:8000"]
+      - BACKEND_CORS_ORIGINS=["http://localhost:8000", "http://localhost:3000"]
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_PORT=9200
       - SMTP_TLS=True
@@ -32,19 +33,22 @@ services:
       - EMAILS_ENABLED=False
       - USERS_OPEN_REGISTRATION=True
     volumes:
-      - ./backend/app:/app/app
-      - ./backend/alembic:/app/alembic
-      - ./backend/migrations:/app/migrations
-      - ./backend/tests:/app/tests
-      - ./backend/alembic.ini:/app/alembic.ini
-      - ./backend/requirements.txt:/app/requirements.txt
-      - ./backend/wait_for_services.py:/app/wait_for_services.py
-      - ./backend/start.sh:/app/start.sh
+      - ./backend:/app
     depends_on:
-      db:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
+      - db
+      - elasticsearch
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
   db:
     image: postgres:15
@@ -54,13 +58,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=app
-    expose:
-      - "5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    ports:
+      - "5432:5432"
 
   elasticsearch:
     image: elasticsearch:7.17.0
@@ -72,12 +71,6 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl --silent --fail http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
-      start_period: 30s
 
 volumes:
   postgres_data:

@@ -1,26 +1,42 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// Базовый URL для API
-const API_URL = '/api/v1';
-
 // Создаем экземпляр axios с базовыми настройками
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_URL,
+  // Используем относительный базовый URL для работы через прокси
+  baseURL: '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+console.log('API клиент настроен с базовым URL /api/v1');
+
 // Интерцептор для добавления токена к запросам
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const url = config.url || '';
+    // Убеждаемся, что URL заканчивается слешем, если это не параметризованный URL
+    if (url && !url.includes('?') && !url.endsWith('/')) {
+      config.url = `${url}/`;
     }
+    
+    console.log('Отправка запроса к:', config.baseURL + config.url);
+    
+    // Получаем токен из localStorage
+    const token = localStorage.getItem('token');
+    
+    // Если токен существует, добавляем его в заголовки
+    if (token) {
+      console.log('Добавляем токен авторизации к запросу');
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.log('Токен не найден, запрос будет отправлен без авторизации');
+    }
+    
     return config;
   },
   (error) => {
+    console.error('Ошибка в интерцепторе запросов:', error);
     return Promise.reject(error);
   }
 );
@@ -28,15 +44,20 @@ apiClient.interceptors.request.use(
 // Интерцептор для обработки ответов
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('Успешный ответ от:', response.config.url);
     return response;
   },
   (error) => {
+    console.error('Ошибка ответа:', error.config?.url, error.response?.status, error.message);
+    
     // Обработка ошибки 401 (Unauthorized)
     if (error.response && error.response.status === 401) {
+      console.log('Получен ответ 401, перенаправляем на страницу входа');
       // Очищаем токен и перенаправляем на страницу входа
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );
