@@ -84,6 +84,7 @@ class PlayerBase(BaseModel):
     birth_date: Optional[date] = None
     contact_info: Optional[Dict[str, Any]] = None
     additional_info: Optional[Dict[str, Any]] = None
+    health_notes: Optional[str] = None
 
 
 # Свойства для создания

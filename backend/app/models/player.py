@@ -63,9 +63,10 @@ class Player(Base):
     birth_date = Column(Date)
     contact_info = Column(JSON)
     additional_info = Column(JSON)
+    health_notes = Column(String(1000), nullable=True)
     
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    created_by_user = relationship("User", back_populates="created_players", foreign_keys="Player.created_by_user_id")
+    created_by_user = relationship("User", back_populates="created_players")
     
     created_by_fund_id = Column(UUID(as_uuid=True), ForeignKey("funds.id"), nullable=False)
     created_by_fund = relationship("Fund")
