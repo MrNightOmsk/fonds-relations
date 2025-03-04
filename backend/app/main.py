@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from starlette.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
@@ -46,5 +46,10 @@ async def root(request: Request):
             "db_status": status["db_status"]
         }
     )
+
+@app.get(settings.API_V1_STR, include_in_schema=False)
+@app.get(f"{settings.API_V1_STR}/", include_in_schema=False)
+async def api_root():
+    return {"status": "ok", "message": "API is running"}
 
 app.include_router(api_router, prefix=settings.API_V1_STR) 
