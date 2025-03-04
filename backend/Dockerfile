@@ -1,18 +1,19 @@
 FROM python:3.9
 
-WORKDIR /app/
+WORKDIR /app
 
-# Устанавливаем зависимости
-COPY requirements.txt /app/
+# Установка зависимостей
+COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем исходный код
-COPY . /app/
+# Копирование кода приложения
+COPY . /app
 
-# Добавляем пакет alembic, если его нет в requirements.txt
-RUN pip install --no-cache-dir alembic psycopg2-binary
+# Создание необходимых директорий
+RUN python setup.py
 
-# Делаем скрипт запуска исполняемым
+# Делаем start.sh исполняемым
 RUN chmod +x /app/start.sh
 
+# Запуск приложения через start.sh
 CMD ["/app/start.sh"] 

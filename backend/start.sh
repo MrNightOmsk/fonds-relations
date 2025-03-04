@@ -1,7 +1,10 @@
 #!/bin/bash
-echo "Waiting for services to be ready..."
+
+# Ждем, пока база данных и Elasticsearch будут готовы
 python wait_for_services.py
-echo "Applying database migrations..."
+
+# Применяем миграции
 alembic upgrade head
-echo "Starting application..."
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload 
+
+# Запускаем приложение
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload-exclude ".*" --reload-include "*.py" 
