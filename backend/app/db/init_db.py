@@ -15,16 +15,16 @@ def init_db(db: Session) -> None:
     # Создаем первый фонд, если еще нет ни одного
     fund = crud.fund.get_multi(db, limit=1)
     if not fund:
-        fund_id = str(uuid.uuid4())
         fund_in = schemas.FundCreate(
             name="Default Fund",
             description="Default fund created during initialization",
             contact_info={"email": "admin@example.com", "phone": "+1234567890"}
         )
-        fund = crud.fund.create(db, obj_in=fund_in, fund_id=fund_id)
+        fund = crud.fund.create(db, obj_in=fund_in)
     else:
         fund = fund[0]
-        fund_id = str(fund.id)
+    
+    fund_id = str(fund.id)
 
     # Создаем суперпользователя, если он не существует
     user = crud.user.get_by_email(db, email=settings.FIRST_SUPERUSER)
