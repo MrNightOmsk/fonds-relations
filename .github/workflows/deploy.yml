@@ -27,6 +27,9 @@ jobs:
           # Переходим в директорию проекта
           cd /var/www/fonds-relations
           
+          # Авторизуемся в Docker Hub с использованием токена
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          
           # Останавливаем все контейнеры Docker
           docker stop $(docker ps -aq) || true
           
