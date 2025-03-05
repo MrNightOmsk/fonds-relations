@@ -1,5 +1,0 @@
-[33mcommit 50b018622a149ec83adb71040825d60aef42ccf8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
-Author: MrNightOmsk <mrnightomsk@gmail.com>
-Date:   Mon Mar 3 23:47:12 2025 +0600
-
-    Рефакторинг миграций для использования Alembic и поддержки Docker
