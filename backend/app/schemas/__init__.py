@@ -14,12 +14,21 @@ from app.schemas.player import (
     PlayerNickname,
     PlayerNicknameCreate,
     PlayerNicknameUpdate,
+    PlayerPaymentMethod,
+    PlayerPaymentMethodCreate,
+    PlayerPaymentMethodUpdate,
+    PlayerSocialMedia,
+    PlayerSocialMediaCreate,
+    PlayerSocialMediaUpdate,
 )
 from app.schemas.case import (
     CaseWithPlayer,
     CaseEvidence,
     CaseEvidenceCreate,
     CaseEvidenceUpdate,
+    CaseComment,
+    CaseCommentCreate,
+    CaseCommentUpdate,
 )
 from app.schemas.audit import (
     AuditLog,
@@ -53,6 +62,12 @@ __all__ = [
     "PlayerNickname",
     "PlayerNicknameCreate",
     "PlayerNicknameUpdate",
+    "PlayerPaymentMethod",
+    "PlayerPaymentMethodCreate",
+    "PlayerPaymentMethodUpdate",
+    "PlayerSocialMedia",
+    "PlayerSocialMediaCreate",
+    "PlayerSocialMediaUpdate",
     # Case schemas
     "Case",
     "CaseCreate",
@@ -62,6 +77,9 @@ __all__ = [
     "CaseEvidence",
     "CaseEvidenceCreate",
     "CaseEvidenceUpdate",
+    "CaseComment",
+    "CaseCommentCreate",
+    "CaseCommentUpdate",
     # Audit schemas
     "AuditLog",
     "AuditLogCreate",

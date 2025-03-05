@@ -9,6 +9,8 @@ const NotFound = () => import('@/views/NotFoundView.vue');
 const Admin = () => import('@/views/AdminView.vue');
 const PlayersManagement = () => import('@/components/admin/PlayersManagement.vue');
 const CasesManagement = () => import('@/components/admin/CasesManagement.vue');
+const PlayerDetail = () => import('@/views/players/PlayerDetail.vue');
+const CaseDetail = () => import('@/views/cases/CaseDetail.vue');
 
 // @ts-ignore
 const routes = [
@@ -27,6 +29,20 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/players/:id',
+    name: 'PlayerDetail',
+    component: PlayerDetail,
+    meta: { requiresAuth: true },
+    props: true
+  },
+  {
+    path: '/cases/:id',
+    name: 'CaseDetail',
+    component: CaseDetail,
+    meta: { requiresAuth: true },
+    props: true
   },
   {
     path: '/admin',
@@ -48,6 +64,11 @@ const routes = [
         path: 'cases',
         name: 'AdminCases',
         component: CasesManagement,
+        meta: { requiresAuth: true, requiresAdmin: true }
+      },
+      {
+        path: 'poker-rooms',
+        component: () => import('../components/admin/PokerRoomsManagement.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
       }
     ]

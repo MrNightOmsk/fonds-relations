@@ -29,5 +29,8 @@ class User(Base):
     notification_subscriptions = relationship("NotificationSubscription", back_populates="user", foreign_keys="NotificationSubscription.user_id")
     uploaded_evidences = relationship("CaseEvidence", back_populates="uploaded_by", foreign_keys="CaseEvidence.uploaded_by_id")
     
+    # Новые связи для комментариев к кейсам
+    case_comments = relationship("CaseComment", back_populates="created_by", foreign_keys="CaseComment.created_by_id")
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now()) 

@@ -57,7 +57,8 @@ class PlayerLocation(PlayerLocationBase):
 # Базовые схемы для никнеймов игрока
 class PlayerNicknameBase(BaseModel):
     nickname: str
-    source: Optional[str] = None
+    room: Optional[str] = None
+    discipline: Optional[str] = None
 
 
 class PlayerNicknameCreate(PlayerNicknameBase):
@@ -78,9 +79,62 @@ class PlayerNickname(PlayerNicknameBase):
         from_attributes = True
 
 
+# Базовые схемы для платежных методов игрока
+class PlayerPaymentMethodBase(BaseModel):
+    type: str
+    value: str
+    description: Optional[str] = None
+
+
+class PlayerPaymentMethodCreate(PlayerPaymentMethodBase):
+    pass
+
+
+class PlayerPaymentMethodUpdate(PlayerPaymentMethodBase):
+    pass
+
+
+class PlayerPaymentMethod(PlayerPaymentMethodBase):
+    id: UUID
+    player_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Базовые схемы для социальных медиа игрока
+class PlayerSocialMediaBase(BaseModel):
+    type: str
+    value: str
+    description: Optional[str] = None
+
+
+class PlayerSocialMediaCreate(PlayerSocialMediaBase):
+    pass
+
+
+class PlayerSocialMediaUpdate(PlayerSocialMediaBase):
+    pass
+
+
+class PlayerSocialMedia(PlayerSocialMediaBase):
+    id: UUID
+    player_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # Общие атрибуты
 class PlayerBase(BaseModel):
-    full_name: str
+    first_name: str
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    full_name: Optional[str] = None
     birth_date: Optional[date] = None
     contact_info: Optional[Dict[str, Any]] = None
     additional_info: Optional[Dict[str, Any]] = None
@@ -94,10 +148,15 @@ class PlayerCreate(PlayerBase):
     contacts: Optional[List[PlayerContactCreate]] = None
     locations: Optional[List[PlayerLocationCreate]] = None
     nicknames: Optional[List[PlayerNicknameCreate]] = None
+    payment_methods: Optional[List[PlayerPaymentMethodCreate]] = None
+    social_media: Optional[List[PlayerSocialMediaCreate]] = None
 
 
 # Свойства для обновления
 class PlayerUpdate(PlayerBase):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
     full_name: Optional[str] = None
 
 
@@ -111,6 +170,8 @@ class Player(PlayerBase):
     contacts: List[PlayerContact] = []
     locations: List[PlayerLocation] = []
     nicknames: List[PlayerNickname] = []
+    payment_methods: List[PlayerPaymentMethod] = []
+    social_media: List[PlayerSocialMedia] = []
 
     class Config:
         from_attributes = True
@@ -128,10 +189,15 @@ class PlayerDetail(Player):
 class PlayerSearchResult(BaseModel):
     id: UUID
     full_name: str
+    first_name: str
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
     description: Optional[str] = None
     contacts: List[PlayerContact] = []
     locations: List[PlayerLocation] = []
     nicknames: List[PlayerNickname] = []
+    payment_methods: List[PlayerPaymentMethod] = []
+    social_media: List[PlayerSocialMedia] = []
 
     class Config:
         from_attributes = True 

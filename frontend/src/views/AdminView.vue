@@ -20,6 +20,10 @@
         :class="['px-4 py-2 mr-2', activeTab === 'cases' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
         Кейсы
       </button>
+      <button @click="navigateToTab('poker-rooms')" 
+        :class="['px-4 py-2 mr-2', activeTab === 'poker-rooms' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        Покерные румы
+      </button>
     </div>
 
     <!-- Содержимое вкладки -->
@@ -61,6 +65,8 @@ const navigateToTab = (tab: string) => {
     router.push('/admin/players');
   } else if (tab === 'cases') {
     router.push('/admin/cases');
+  } else if (tab === 'poker-rooms') {
+    router.push('/admin/poker-rooms');
   }
 };
 
@@ -88,6 +94,8 @@ const updateActiveTab = () => {
     activeTab.value = 'players';
   } else if (path.includes('/admin/cases')) {
     activeTab.value = 'cases';
+  } else if (path.includes('/admin/poker-rooms')) {
+    activeTab.value = 'poker-rooms';
   }
   console.log('Активная вкладка установлена:', activeTab.value);
 };

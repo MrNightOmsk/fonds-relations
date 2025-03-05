@@ -20,10 +20,10 @@
       <div class="card">
         <h2 class="text-xl font-semibold mb-4">Быстрые действия</h2>
         <div class="space-y-2">
-          <router-link to="/players" class="btn-primary block text-center">
+          <router-link to="/admin/players" class="btn-primary block text-center">
             Управление игроками
           </router-link>
-          <router-link to="/cases" class="btn-secondary block text-center">
+          <router-link to="/admin/cases" class="btn-secondary block text-center">
             Управление кейсами
           </router-link>
         </div>

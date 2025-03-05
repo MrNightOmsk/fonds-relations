@@ -24,7 +24,83 @@ def read_players(
     Retrieve players.
     """
     players = crud.player.get_multi(db, skip=skip, limit=limit)
-    return players
+    
+    # Преобразуем объекты SQLAlchemy в словари для правильной сериализации
+    result = []
+    for player in players:
+        player_dict = {
+            "id": player.id,
+            "first_name": player.first_name,
+            "last_name": player.last_name,
+            "middle_name": player.middle_name,
+            "full_name": player.full_name,
+            "birth_date": player.birth_date,
+            "contact_info": player.contact_info,
+            "additional_info": player.additional_info,
+            "health_notes": player.health_notes,
+            "created_by_user_id": player.created_by_user_id,
+            "created_by_fund_id": player.created_by_fund_id,
+            "created_at": player.created_at,
+            "updated_at": player.updated_at,
+            "contacts": [
+                {
+                    "id": contact.id,
+                    "player_id": contact.player_id,
+                    "type": contact.type,
+                    "value": contact.value,
+                    "description": contact.description,
+                    "created_at": contact.created_at,
+                    "updated_at": contact.updated_at
+                } for contact in player.contacts
+            ],
+            "locations": [
+                {
+                    "id": location.id,
+                    "player_id": location.player_id,
+                    "country": location.country,
+                    "city": location.city,
+                    "address": location.address,
+                    "created_at": location.created_at,
+                    "updated_at": location.updated_at
+                } for location in player.locations
+            ],
+            "nicknames": [
+                {
+                    "id": nickname.id,
+                    "player_id": nickname.player_id,
+                    "nickname": nickname.nickname,
+                    "room": nickname.room,
+                    "discipline": nickname.discipline,
+                    "created_at": nickname.created_at,
+                    "updated_at": nickname.updated_at
+                } for nickname in player.nicknames
+            ],
+            "payment_methods": [
+                {
+                    "id": pm.id,
+                    "player_id": pm.player_id,
+                    "type": pm.type,
+                    "value": pm.value,
+                    "description": pm.description,
+                    "created_at": pm.created_at,
+                    "updated_at": pm.updated_at
+                } for pm in player.payment_methods
+            ],
+            "social_media": [
+                {
+                    "id": sm.id,
+                    "player_id": sm.player_id,
+                    "type": sm.type,
+                    "value": sm.value,
+                    "description": sm.description,
+                    "created_at": sm.created_at,
+                    "updated_at": sm.updated_at
+                } for sm in player.social_media
+            ]
+        }
+        result.append(player_dict)
+    
+    return result
 
 
 @router.post("/", response_model=schemas.Player, status_code=201)

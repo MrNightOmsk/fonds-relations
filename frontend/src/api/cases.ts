@@ -1,4 +1,11 @@
-import type { Case, CaseCreate, CaseUpdate, CaseStatus } from '@/types/models';
+import type { 
+  Case, 
+  CaseCreate, 
+  CaseUpdate, 
+  CaseComment,
+  CaseCommentCreate,
+  CaseEvidence 
+} from '@/types/models';
 import { useApiClient } from '@/composables/useApiClient';
 
 export function useCasesApi() {
@@ -23,7 +30,7 @@ export function useCasesApi() {
     /**
      * Получить дело по ID
      */
-    async getCaseById(id: number) {
+    async getCaseById(id: string) {
       try {
         const response = await api.get<Case>(`${baseUrl}/${id}`);
         return response.data;
@@ -36,7 +43,7 @@ export function useCasesApi() {
     /**
      * Создать новое дело
      */
-    async createCase(caseData: any) {
+    async createCase(caseData: CaseCreate) {
       try {
         const response = await api.post<Case>(baseUrl, caseData);
         return response.data;
@@ -49,7 +56,7 @@ export function useCasesApi() {
     /**
      * Обновить данные дела
      */
-    async updateCase(id: number, caseData: any) {
+    async updateCase(id: string, caseData: CaseUpdate) {
       try {
         const response = await api.put<Case>(`${baseUrl}/${id}`, caseData);
         return response.data;
@@ -62,7 +69,7 @@ export function useCasesApi() {
     /**
      * Удалить дело
      */
-    async deleteCase(id: number) {
+    async deleteCase(id: string) {
       try {
         const response = await api.delete<{ success: boolean }>(`${baseUrl}/${id}`);
         return response.data;
@@ -75,7 +82,7 @@ export function useCasesApi() {
     /**
      * Изменить статус дела
      */
-    async updateCaseStatus(id: number, status: any) {
+    async updateCaseStatus(id: string, status: 'open' | 'closed') {
       try {
         const response = await api.patch<Case>(`${baseUrl}/${id}/status`, { status });
         return response.data;
@@ -101,7 +108,7 @@ export function useCasesApi() {
     /**
      * Получить дела по статусу
      */
-    async getCasesByStatus(status: any): Promise<Case[]> {
+    async getCasesByStatus(status: 'open' | 'closed'): Promise<Case[]> {
       try {
         const response = await api.get(baseUrl, { params: { status } });
         return response.data;
@@ -120,6 +127,88 @@ export function useCasesApi() {
         return response.data;
       } catch (error) {
         console.error(`Error fetching cases for player ${playerId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Получить комментарии к делу
+     */
+    async getCaseComments(caseId: string): Promise<CaseComment[]> {
+      try {
+        const response = await api.get(`${baseUrl}/${caseId}/comments`);
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при получении комментариев к делу с ID ${caseId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Добавить комментарий к делу
+     */
+    async addCaseComment(caseId: string, commentData: { comment: string }): Promise<CaseComment> {
+      try {
+        const response = await api.post(`${baseUrl}/${caseId}/comments`, {
+          ...commentData,
+          case_id: caseId
+        });
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при добавлении комментария к делу с ID ${caseId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Получить доказательства к делу
+     */
+    async getCaseEvidences(caseId: string): Promise<CaseEvidence[]> {
+      try {
+        const response = await api.get(`${baseUrl}/${caseId}/evidences`);
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при получении доказательств к делу с ID ${caseId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Загрузить доказательство к делу
+     */
+    async uploadCaseEvidence(
+      caseId: string, 
+      file: File, 
+      type: string, 
+      description?: string
+    ): Promise<CaseEvidence> {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        if (description) {
+          formData.append('description', description);
+        }
+        
+        const response = await api.post(`${baseUrl}/${caseId}/evidences`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при загрузке доказательства к делу с ID ${caseId}:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Удалить доказательство
+     */
+    async deleteCaseEvidence(caseId: string, evidenceId: string): Promise<{ success: boolean }> {
+      try {
+        const response = await api.delete(`${baseUrl}/${caseId}/evidences/${evidenceId}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Ошибка при удалении доказательства:`, error);
         throw error;
       }
     }

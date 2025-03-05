@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 from datetime import datetime
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 
@@ -270,4 +270,145 @@ def read_cases_by_date_range(
     cases = crud.case.get_by_date_range(
         db=db, start_date=start_date, end_date=end_date, skip=skip, limit=limit
     )
-    return cases 
+    return cases
+
+
+@router.post("/{case_id}/comments/", response_model=schemas.CaseComment, status_code=201)
+def create_case_comment(
+    *,
+    db: Session = Depends(deps.get_db),
+    case_id: uuid.UUID,
+    comment_in: schemas.CaseCommentCreate,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Create new comment for a case.
+    """
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Проверка принадлежности кейса к фонду пользователя
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        comment = crud.case.add_comment(
+            db=db, 
+            case_id=case_id_uuid,
+            comment_text=comment_in.comment,
+            user_id=current_user.id
+        )
+        return comment
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid case ID format")
+
+
+@router.get("/{case_id}/comments/", response_model=List[schemas.CaseComment])
+def read_case_comments(
+    *,
+    db: Session = Depends(deps.get_db),
+    case_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get comments for a case.
+    """
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        # Проверка принадлежности кейса к фонду пользователя
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        comments = crud.case.get_comments(db=db, case_id=case_id_uuid, skip=skip, limit=limit)
+        return comments
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid case ID format")
+
+
+@router.post("/{case_id}/evidences/", response_model=schemas.CaseEvidence, status_code=201)
+async def create_case_evidence(
+    *,
+    db: Session = Depends(deps.get_db),
+    case_id: uuid.UUID,
+    type: str = Form(...),
+    description: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Upload evidence for a case.
+    """
+    try:
+        from pathlib import Path
+        import shutil
+        import os
+        
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        # Проверка принадлежности кейса к фонду пользователя
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Создаем директорию для хранения файлов, если ее нет
+        upload_dir = Path("uploads/case_evidences") / str(case_id_uuid)
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Сохраняем файл
+        file_path = upload_dir / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Добавляем запись в базу данных
+        evidence = crud.case.add_evidence(
+            db=db,
+            case_id=case_id_uuid,
+            evidence_type=type,
+            file_path=str(file_path),
+            description=description,
+            user_id=current_user.id
+        )
+        
+        return evidence
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid case ID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+
+@router.get("/{case_id}/evidences/", response_model=List[schemas.CaseEvidence])
+def read_case_evidences(
+    *,
+    db: Session = Depends(deps.get_db),
+    case_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get evidences for a case.
+    """
+    try:
+        case_id_uuid = uuid.UUID(str(case_id))
+        case = crud.case.get(db=db, id=case_id_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        # Проверка принадлежности кейса к фонду пользователя
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        evidences = crud.case.get_evidences(db=db, case_id=case_id_uuid, skip=skip, limit=limit)
+        return evidences
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid case ID format") 

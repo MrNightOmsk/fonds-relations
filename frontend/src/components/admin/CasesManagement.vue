@@ -161,6 +161,39 @@
           </select>
         </div>
         
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Тип арбитража</label>
+          <input 
+            type="text" 
+            v-model="formData.arbitrage_type" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="Например: штраф, компенсация"
+          >
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Сумма арбитража</label>
+          <input 
+            type="number" 
+            v-model="formData.arbitrage_amount" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            min="0"
+            step="0.01"
+          >
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Валюта арбитража</label>
+          <select 
+            v-model="formData.arbitrage_currency" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="RUB">RUB</option>
+          </select>
+        </div>
+        
         <div class="flex justify-end space-x-2">
           <button 
             @click="closeModal" 

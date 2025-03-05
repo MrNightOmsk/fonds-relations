@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
-from app.models.player import Player, PlayerContact, PlayerLocation, PlayerNickname
+from app.models.player import Player, PlayerContact, PlayerLocation, PlayerNickname, PlayerPaymentMethod, PlayerSocialMedia
 from app.schemas.player import PlayerCreate, PlayerUpdate
 
 
@@ -12,11 +12,21 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
     def create_with_details(
         self, db: Session, *, obj_in: PlayerCreate
     ) -> Player:
+        # Разделяем ФИО на составляющие, если полное имя задано
+        first_name = obj_in.first_name
+        last_name = obj_in.last_name
+        middle_name = obj_in.middle_name
+        full_name = obj_in.full_name or f"{first_name} {last_name or ''} {middle_name or ''}".strip()
+        
         db_obj = Player(
-            full_name=obj_in.full_name,
+            first_name=first_name,
+            last_name=last_name, 
+            middle_name=middle_name,
+            full_name=full_name,
             birth_date=obj_in.birth_date,
             contact_info=obj_in.contact_info,
             additional_info=obj_in.additional_info,
+            health_notes=obj_in.health_notes,
             created_by_user_id=obj_in.created_by_user_id,
             created_by_fund_id=obj_in.created_by_fund_id
         )
@@ -51,9 +61,32 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
                 db_nickname = PlayerNickname(
                     player_id=db_obj.id,
                     nickname=nickname.nickname,
-                    source=nickname.source
+                    room=nickname.room,
+                    discipline=nickname.discipline
                 )
                 db.add(db_nickname)
+                
+        # Create payment methods
+        if obj_in.payment_methods:
+            for payment_method in obj_in.payment_methods:
+                db_payment_method = PlayerPaymentMethod(
+                    player_id=db_obj.id,
+                    type=payment_method.type,
+                    value=payment_method.value,
+                    description=payment_method.description
+                )
+                db.add(db_payment_method)
+                
+        # Create social media
+        if obj_in.social_media:
+            for social_media in obj_in.social_media:
+                db_social_media = PlayerSocialMedia(
+                    player_id=db_obj.id,
+                    type=social_media.type,
+                    value=social_media.value,
+                    description=social_media.description
+                )
+                db.add(db_social_media)
 
         db.commit()
         db.refresh(db_obj)
@@ -72,9 +105,16 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
             update_data = obj_in.dict(exclude_unset=True)
 
         # Update basic player info
-        for field in ["full_name", "birth_date", "contact_info", "additional_info", "description", "is_active"]:
+        for field in ["first_name", "last_name", "middle_name", "full_name", "birth_date", "contact_info", "additional_info", "health_notes", "is_active"]:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
+                
+        # Если обновились составляющие ФИО, обновляем и полное имя для совместимости
+        if any(field in update_data for field in ["first_name", "last_name", "middle_name"]) and "full_name" not in update_data:
+            first_name = update_data.get("first_name", db_obj.first_name)
+            last_name = update_data.get("last_name", db_obj.last_name)
+            middle_name = update_data.get("middle_name", db_obj.middle_name)
+            db_obj.full_name = f"{first_name} {last_name or ''} {middle_name or ''}".strip()
 
         # Update contacts
         if "contacts" in update_data:
@@ -122,9 +162,44 @@ class CRUDPlayer(CRUDBase[Player, PlayerCreate, PlayerUpdate]):
                 db_nickname = PlayerNickname(
                     player_id=db_obj.id,
                     nickname=nickname["nickname"],
-                    platform=nickname.get("platform")
+                    room=nickname.get("room"),
+                    discipline=nickname.get("discipline")
                 )
                 db.add(db_nickname)
+                
+        # Update payment methods
+        if "payment_methods" in update_data:
+            # Remove old payment methods
+            db.query(PlayerPaymentMethod).filter(
+                PlayerPaymentMethod.player_id == db_obj.id
+            ).delete()
+            
+            # Add new payment methods
+            for payment_method in update_data["payment_methods"]:
+                db_payment_method = PlayerPaymentMethod(
+                    player_id=db_obj.id,
+                    type=payment_method["type"],
+                    value=payment_method["value"],
+                    description=payment_method.get("description")
+                )
+                db.add(db_payment_method)
+                
+        # Update social media
+        if "social_media" in update_data:
+            # Remove old social media
+            db.query(PlayerSocialMedia).filter(
+                PlayerSocialMedia.player_id == db_obj.id
+            ).delete()
+            
+            # Add new social media
+            for social_media in update_data["social_media"]:
+                db_social_media = PlayerSocialMedia(
+                    player_id=db_obj.id,
+                    type=social_media["type"],
+                    value=social_media["value"],
+                    description=social_media.get("description")
+                )
+                db.add(db_social_media)
 
         db.add(db_obj)
         db.commit()

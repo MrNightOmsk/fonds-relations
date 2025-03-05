@@ -10,6 +10,7 @@ export const getFullUrl = (endpoint: string) => {
   if (!endpoint.startsWith('/')) {
     endpoint = `/${endpoint}`;
   }
+  
   return `${API_URL}${endpoint}`;
 };
 
