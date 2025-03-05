@@ -5,6 +5,7 @@ from app.api.v1.endpoints import login, users, players, cases, audit, funds
 api_router = APIRouter()
 
 @api_router.get("/")
+@api_router.get("")
 def health_check():
     return {"status": "ok", "message": "API is running"}
 

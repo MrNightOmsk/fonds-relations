@@ -12,7 +12,8 @@ from app.core.health import get_health_status
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    version=API_VERSION
+    version=API_VERSION,
+    redirect_slashes=True
 )
 
 # Настройка шаблонов
