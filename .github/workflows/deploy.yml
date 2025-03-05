@@ -70,8 +70,15 @@ jobs:
           docker-compose down -v
           docker-compose up -d --build
           
-          # Ждем 10 секунд, чтобы контейнеры успели запуститься
-          sleep 10
+          # Увеличиваем время ожидания до 30 секунд
+          echo "Waiting 30 seconds for containers to start..."
+          sleep 30
+          
+          # Проверяем запущенные контейнеры и их состояние
+          docker ps -a
+          
+          # Проверяем логи контейнеров
+          docker-compose logs --tail=50
           
           # Проверяем, что контейнеры запущены
           if ! docker ps | grep -q backend-app-1; then
@@ -80,25 +87,40 @@ jobs:
             exit 1
           fi
           
+          # Проверяем сетевые соединения внутри Docker
+          docker exec backend-app-1 netstat -tulpn || echo "Could not check network connections"
+          
           # Проверяем, что API отвечает и возвращает правильный статус
           echo "Checking API health..."
-          response=$(curl -s http://localhost:8000/docs)
-          if [ $? -ne 0 ]; then
-            echo "Failed to connect to API!"
-            docker-compose logs
-            exit 1
-          fi
+          # Проверяем с более подробной информацией
+          curl -v http://localhost:8000/docs
           
-          response=$(curl -s http://localhost:8000/api/v1)
-          if ! echo "$response" | grep -q '"status":"ok"'; then
-            echo "API health check failed! Response: $response"
-            echo "Trying alternative path..."
-            response=$(curl -s http://localhost:8000/api/v1/)
-            if ! echo "$response" | grep -q '"status":"ok"'; then
-              echo "API health check failed on both paths! Response: $response"
-              docker-compose logs
-              exit 1
+          # Пробуем подключиться к API
+          for i in {1..5}; do
+            echo "Attempt $i: Checking API health..."
+            response=$(curl -s http://localhost:8000/api/v1)
+            if echo "$response" | grep -q '"status":"ok"'; then
+              echo "API health check succeeded!"
+              break
             fi
-          fi
+            
+            if [ $i -eq 5 ]; then
+              echo "API health check failed after 5 attempts! Response: $response"
+              echo "Trying alternative path..."
+              response=$(curl -s http://localhost:8000/api/v1/)
+              if echo "$response" | grep -q '"status":"ok"'; then
+                echo "API health check succeeded on alternative path!"
+                break
+              else
+                echo "API health check failed on both paths! Response: $response"
+                echo "Full logs:"
+                docker-compose logs
+                exit 1
+              fi
+            fi
+            
+            echo "Waiting 5 seconds before next attempt..."
+            sleep 5
+          done
           
           echo "Deployment successful!" 
