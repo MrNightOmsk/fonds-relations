@@ -4,20 +4,20 @@
     
     <!-- Панель навигации -->
     <div class="flex mb-6 border-b">
-      <button @click="activeTab = 'users'" 
+      <button @click="navigateToTab('users')" 
         :class="['px-4 py-2 mr-2', activeTab === 'users' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
         Пользователи
       </button>
-      <button @click="activeTab = 'funds'" 
+      <button @click="navigateToTab('funds')" 
         :class="['px-4 py-2 mr-2', activeTab === 'funds' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
         Фонды
       </button>
-      <button @click="navigateTo('/admin/players')" 
-        :class="['px-4 py-2 mr-2', $route.path.includes('/admin/players') ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+      <button @click="navigateToTab('players')" 
+        :class="['px-4 py-2 mr-2', activeTab === 'players' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
         Игроки
       </button>
-      <button @click="navigateTo('/admin/cases')" 
-        :class="['px-4 py-2 mr-2', $route.path.includes('/admin/cases') ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+      <button @click="navigateToTab('cases')" 
+        :class="['px-4 py-2 mr-2', activeTab === 'cases' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
         Кейсы
       </button>
     </div>
@@ -49,10 +49,19 @@ const route = useRoute();
 const router = useRouter();
 const activeTab = ref('users');
 
-// Функция для перехода по маршруту
-const navigateTo = (path: string) => {
-  console.log('Переход по маршруту:', path);
-  router.push(path);
+// Функция для перехода по вкладкам
+const navigateToTab = (tab: string) => {
+  console.log('Переход на вкладку:', tab);
+  activeTab.value = tab;
+  
+  if (tab === 'users' || tab === 'funds') {
+    // Для локальных вкладок переходим на базовый маршрут админки
+    router.push('/admin');
+  } else if (tab === 'players') {
+    router.push('/admin/players');
+  } else if (tab === 'cases') {
+    router.push('/admin/cases');
+  }
 };
 
 // Установка активной вкладки в зависимости от маршрута
@@ -71,7 +80,10 @@ watch(() => route.path, (newPath) => {
 const updateActiveTab = () => {
   const path = route.path;
   if (path === '/admin') {
-    activeTab.value = 'users';
+    // Сохраняем активную вкладку для users и funds
+    if (activeTab.value !== 'users' && activeTab.value !== 'funds') {
+      activeTab.value = 'users';
+    }
   } else if (path.includes('/admin/players')) {
     activeTab.value = 'players';
   } else if (path.includes('/admin/cases')) {
