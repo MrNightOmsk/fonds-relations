@@ -47,6 +47,13 @@ jobs:
             sleep 5
           fi
           
+          # Проверяем, что порт 80 свободен для фронтенда
+          if lsof -i:80; then
+            echo "Port 80 is still in use. Trying to find and kill the process..."
+            fuser -k 80/tcp || true
+            sleep 5
+          fi
+
           # Обновляем код
           git fetch origin main
           git reset --hard origin/main
@@ -67,8 +74,10 @@ jobs:
           sed -i "s/your-email@gmail.com/${{ secrets.SMTP_USER }}/g" .env
           sed -i "s/your-app-specific-password/${{ secrets.SMTP_PASSWORD }}/g" .env
           
+          cd ..
+          
           # Запускаем контейнеры
-          docker-compose down -v
+          docker-compose down
           docker-compose up -d --build
           
           # Увеличиваем время ожидания до 30 секунд
@@ -81,15 +90,22 @@ jobs:
           # Проверяем логи контейнеров
           docker-compose logs --tail=50
           
-          # Проверяем, что контейнеры запущены
-          if ! docker ps | grep -q backend-app-1; then
+          # Проверяем, что бэкенд контейнер запущен
+          if ! docker ps | grep -q backend; then
             echo "Backend container is not running!"
-            docker-compose logs
+            docker-compose logs backend
+            exit 1
+          fi
+          
+          # Проверяем, что фронтенд контейнер запущен
+          if ! docker ps | grep -q frontend; then
+            echo "Frontend container is not running!"
+            docker-compose logs frontend
             exit 1
           fi
           
           # Проверяем сетевые соединения внутри Docker
-          docker exec backend-app-1 netstat -tulpn || echo "Could not check network connections"
+          docker exec $(docker ps | grep backend | awk '{print $1}') netstat -tulpn || echo "Could not check network connections"
           
           # Проверяем, что API отвечает и возвращает правильный статус
           echo "Checking API health..."
@@ -123,5 +139,16 @@ jobs:
             echo "Waiting 5 seconds before next attempt..."
             sleep 5
           done
+          
+          # Проверяем доступность фронтенда
+          echo "Checking Frontend health..."
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
+          if [[ "$response_code" = "200" ]]; then
+            echo "Frontend health check succeeded!"
+          else
+            echo "Frontend health check failed! Response code: $response_code"
+            docker-compose logs frontend
+            exit 1
+          fi
           
           echo "Deployment successful!" 
