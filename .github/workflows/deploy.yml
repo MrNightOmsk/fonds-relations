@@ -105,7 +105,7 @@ jobs:
               
               # Останавливаем все контейнеры кроме базы данных для предотвращения конфликтов
               echo "Stopping application containers to prevent conflicts..."
-              docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') || true
+              docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') > /dev/null 2>&1 || true
               
               # Восстанавливаем базу данных
               echo "Restoring database from dump..."
@@ -145,7 +145,7 @@ jobs:
                 
                 # Останавливаем все контейнеры кроме базы данных для предотвращения конфликтов
                 echo "Stopping application containers to prevent conflicts..."
-                docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') || true
+                docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') > /dev/null 2>&1 || true
                 
                 # Восстанавливаем базу данных
                 echo "Restoring database from dump..."
