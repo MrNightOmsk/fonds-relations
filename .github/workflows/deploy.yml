@@ -115,7 +115,17 @@ jobs:
               
               # Останавливаем все контейнеры кроме базы данных для предотвращения конфликтов
               echo "Stopping application containers to prevent conflicts..."
-              docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') > /dev/null 2>&1 || true
+              # Используем промежуточную переменную для хранения ID контейнеров
+              OTHER_CONTAINERS=$(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}')
+              if [ -n "$OTHER_CONTAINERS" ]; then
+                echo "Found application containers to stop"
+                for container_id in $OTHER_CONTAINERS; do
+                  echo "Stopping container: $container_id"
+                  docker stop $container_id >/dev/null 2>&1
+                done
+              else
+                echo "No other containers found to stop"
+              fi
               
               # Восстанавливаем базу данных
               echo "Restoring database from dump..."
@@ -155,7 +165,17 @@ jobs:
                 
                 # Останавливаем все контейнеры кроме базы данных для предотвращения конфликтов
                 echo "Stopping application containers to prevent conflicts..."
-                docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') > /dev/null 2>&1 || true
+                # Используем промежуточную переменную для хранения ID контейнеров
+                OTHER_CONTAINERS=$(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}')
+                if [ -n "$OTHER_CONTAINERS" ]; then
+                  echo "Found application containers to stop"
+                  for container_id in $OTHER_CONTAINERS; do
+                    echo "Stopping container: $container_id"
+                    docker stop $container_id >/dev/null 2>&1
+                  done
+                else
+                  echo "No other containers found to stop"
+                fi
                 
                 # Восстанавливаем базу данных
                 echo "Restoring database from dump..."
