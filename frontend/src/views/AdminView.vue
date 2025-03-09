@@ -24,6 +24,10 @@
         :class="['px-4 py-2 mr-2', activeTab === 'poker-rooms' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
         Покерные румы
       </button>
+      <button @click="navigateToTab('search-index')" 
+        :class="['px-4 py-2 mr-2', activeTab === 'search-index' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        Поисковый индекс
+      </button>
     </div>
 
     <!-- Содержимое вкладки -->
@@ -67,6 +71,8 @@ const navigateToTab = (tab: string) => {
     router.push('/admin/cases');
   } else if (tab === 'poker-rooms') {
     router.push('/admin/poker-rooms');
+  } else if (tab === 'search-index') {
+    router.push('/admin/search-index');
   }
 };
 
@@ -96,6 +102,8 @@ const updateActiveTab = () => {
     activeTab.value = 'cases';
   } else if (path.includes('/admin/poker-rooms')) {
     activeTab.value = 'poker-rooms';
+  } else if (path.includes('/admin/search-index')) {
+    activeTab.value = 'search-index';
   }
   console.log('Активная вкладка установлена:', activeTab.value);
 };

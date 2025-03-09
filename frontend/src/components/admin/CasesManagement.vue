@@ -79,7 +79,7 @@
               {{ getPlayerName(case_item.player_id) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              {{ getFundName(case_item.fund_id) }}
+              {{ getFundName(case_item.created_by_fund_id) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ new Date(case_item.created_at).toLocaleDateString() }}
@@ -136,19 +136,6 @@
         </div>
         
         <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Фонд</label>
-          <select 
-            v-model="formData.fund_id" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option v-for="fund in funds" :key="fund.id" :value="fund.id">
-              {{ fund.name }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Игрок</label>
           <select 
             v-model="formData.player_id" 
@@ -156,7 +143,7 @@
           >
             <option value="">Не выбран</option>
             <option v-for="player in players" :key="player.id" :value="player.id">
-              {{ player.name }}
+              {{ player.full_name || `${player.first_name} ${player.last_name}` }}
             </option>
           </select>
         </div>
@@ -249,7 +236,7 @@ import { useFundsApi } from '@/api/funds';
 // @ts-ignore
 import { usePlayersApi } from '@/api/players';
 // @ts-ignore
-import type { Case, CaseCreate, CaseUpdate, Fund, Player, CaseStatus } from '@/types/models';
+import type { CaseExtended, CaseCreate, CaseUpdate, Fund, Player, CaseStatus } from '@/types/models';
 
 // API клиенты
 const casesApi = useCasesApi();
@@ -257,7 +244,7 @@ const fundsApi = useFundsApi();
 const playersApi = usePlayersApi();
 
 // Состояние
-const cases = ref<Case[]>([]);
+const cases = ref<CaseExtended[]>([]);
 const funds = ref<Fund[]>([]);
 const players = ref<Player[]>([]);
 const loading = ref(true);
@@ -266,7 +253,7 @@ const showEditModal = ref(false);
 const showDeleteConfirm = ref(false);
 const isSubmitting = ref(false);
 const currentCaseId = ref<string | null>(null);
-const caseToDelete = ref<Case | null>(null);
+const caseToDelete = ref<CaseExtended | null>(null);
 
 // Фильтры
 const statusFilter = ref('');
@@ -278,7 +265,9 @@ const defaultFormData: CaseCreate = {
   description: '',
   status: 'open',
   player_id: '',
-  fund_id: ''
+  arbitrage_type: '',
+  arbitrage_amount: 0,
+  arbitrage_currency: 'USD'
 };
 
 const formData = ref<CaseCreate | CaseUpdate>({ ...defaultFormData });
@@ -292,7 +281,7 @@ const filteredCases = computed(() => {
   }
   
   if (fundFilter.value) {
-    result = result.filter(c => c.fund_id === fundFilter.value);
+    result = result.filter(c => c.created_by_fund_id === fundFilter.value);
   }
   
   return result.sort((a, b) => {
@@ -331,14 +320,52 @@ async function fetchPlayers() {
 
 // Получение данных о связанных объектах
 function getFundName(fundId: string): string {
+  if (!fundId) return 'Не привязан';
+  
+  // Если есть расширенные данные о фонде, используем их
+  const caseItem = cases.value.find(c => c.created_by_fund_id === fundId);
+  if (caseItem && caseItem.fund) {
+    return caseItem.fund.name || 'Не указан';
+  }
+  
+  // Иначе ищем в списке фондов
   const fund = funds.value.find(f => f.id === fundId);
-  return fund ? fund.name : 'Неизвестный фонд';
+  return fund ? (fund.name || 'Не указан') : 'Не привязан';
 }
 
 function getPlayerName(playerId?: string): string {
   if (!playerId) return 'Не назначен';
+  
+  // Если есть расширенные данные об игроке, используем их
+  const caseItem = cases.value.find(c => c.player_id === playerId);
+  if (caseItem && caseItem.player) {
+    const player = caseItem.player;
+    if (player.full_name) return player.full_name;
+    
+    const firstName = player.first_name || '';
+    const lastName = player.last_name || '';
+    
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+    
+    return 'Игрок #' + playerId.substring(0, 8);
+  }
+  
+  // Иначе ищем в списке игроков
   const player = players.value.find(p => p.id === playerId);
-  return player ? player.name : 'Неизвестный игрок';
+  if (player) {
+    if (player.full_name) return player.full_name;
+    
+    const firstName = player.first_name || '';
+    const lastName = player.last_name || '';
+    
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+  }
+  
+  return 'Игрок #' + playerId.substring(0, 8);
 }
 
 function getStatusText(status: string): string {
@@ -351,19 +378,21 @@ function getStatusText(status: string): string {
 }
 
 // Обработчики для CRUD
-function editCase(case_item: Case) {
+function editCase(case_item: CaseExtended) {
   currentCaseId.value = case_item.id;
   formData.value = {
-    title: case_item.title,
+    title: case_item.title || '',
     description: case_item.description || '',
-    status: case_item.status as CaseStatus,
-    fund_id: case_item.fund_id,
-    player_id: case_item.player_id || ''
+    status: case_item.status as CaseStatus || 'open',
+    player_id: case_item.player_id || '',
+    arbitrage_type: case_item.arbitrage_type || '',
+    arbitrage_amount: case_item.arbitrage_amount ?? 0,
+    arbitrage_currency: case_item.arbitrage_currency || 'USD'
   };
   showEditModal.value = true;
 }
 
-function confirmDeleteCase(case_item: Case) {
+function confirmDeleteCase(case_item: CaseExtended) {
   caseToDelete.value = case_item;
   showDeleteConfirm.value = true;
 }
@@ -399,7 +428,12 @@ async function saveCase() {
       }
     } else {
       // Создание кейса
-      const newCase = await casesApi.createCase(formData.value as CaseCreate);
+      // Для создания кейса нужно добавить created_by_fund_id из текущего пользователя
+      const createData = {
+        ...formData.value as CaseCreate,
+        // Здесь мы используем ID фонда текущего пользователя
+      };
+      const newCase = await casesApi.createCase(createData);
       cases.value.push(newCase);
     }
     

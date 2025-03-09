@@ -11,6 +11,12 @@
           <router-link to="/dashboard" class="text-white hover:text-gray-200 px-3 py-2">
             Главная
           </router-link>
+          <router-link to="/cases" class="text-white hover:text-gray-200 px-3 py-2">
+            Кейсы
+          </router-link>
+          <router-link to="/players" class="text-white hover:text-gray-200 px-3 py-2">
+            Игроки
+          </router-link>
           <router-link to="/admin" v-if="isAdmin" class="text-white hover:text-gray-200 px-3 py-2">
             Администрирование
           </router-link>

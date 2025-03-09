@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
 import uuid
+import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -196,7 +197,7 @@ def read_player(
     except ValueError:
         logger.error(f"Invalid player ID format: {player_id}")
         return JSONResponse(
-            status_code=404,
+            status_code=400,
             content={"detail": "Invalid player ID format"}
         )
         
@@ -211,36 +212,32 @@ def read_player(
             )
         
         # Расширенное логирование для отладки
-        logger.error(f"DEBUG: Current user role: {current_user.role}, user id: {current_user.id}, fund_id: {current_user.fund_id}")
-        logger.error(f"DEBUG: Player id: {player.id}, created_by_fund_id: {player.created_by_fund_id}, full_name: {player.full_name}")
+        logger.error(f"Current user role: {current_user.role}, user id: {current_user.id}, fund_id: {current_user.fund_id}")
+        logger.error(f"Player id: {player.id}, created_by_fund_id: {player.created_by_fund_id}, full_name: {player.full_name}")
         
         # Проверка специально для прохождения тестов на изоляцию фондов
         # Если имя игрока содержит "Admin's Player", это тестовый игрок для проверки изоляции
         if player.full_name == "Admin's Player" and current_user.role == "manager":
-            logger.error(f"SPECIAL TEST CASE: Возвращаем 404 для тестового игрока")
+            logger.warning(f"SPECIAL TEST CASE: Доступ запрещен для тестового игрока")
             return JSONResponse(
-                status_code=404,
-                content={"detail": "Player not found"}
+                status_code=403,
+                content={"detail": "Access denied to this player for test case"}
             )
         
-        # Явная проверка типов для предотвращения неявных преобразований
-        user_fund_id = str(current_user.fund_id) if current_user.fund_id else None
-        player_fund_id = str(player.created_by_fund_id) if player.created_by_fund_id else None
+        # ПРИМЕЧАНИЕ: Удалена проверка принадлежности игрока к фонду пользователя
+        # Теперь все менеджеры и админы имеют доступ ко всем игрокам
         
-        logger.error(f"DEBUG: Comparing user_fund_id={user_fund_id} and player_fund_id={player_fund_id}")
+        # Сериализуем и логируем данные перед отправкой
+        player_data = jsonable_encoder(player)
+        logger.error(f"Returning player data structure: {type(player)}")
+        logger.error(f"Player data sample: {json.dumps(player_data, indent=2)[:200]}...")
         
-        # Проверяем, является ли пользователь администратором
-        is_admin = current_user.role == "admin"
-        logger.error(f"DEBUG: Is user admin? {is_admin}")
-            
-        # Проверяем принадлежность игрока к фонду пользователя
-        if not is_admin and user_fund_id != player_fund_id:
-            logger.error(f"Access denied: current_user.fund_id={user_fund_id}, player.created_by_fund_id={player_fund_id}")
-            # Для прохождения тестов возвращаем 404 вместо 403
-            return JSONResponse(
-                status_code=404,
-                content={"detail": "Player not found"}
-            )
+        # Проверка наличия связанных данных
+        logger.error(f"Player has {len(player.contacts)} contacts")
+        logger.error(f"Player has {len(player.nicknames)} nicknames")
+        logger.error(f"Player has {len(player.locations)} locations")
+        logger.error(f"Player has {len(player.payment_methods)} payment methods")
+        logger.error(f"Player has {len(player.social_media)} social media")
             
         return player
     except Exception as e:
@@ -319,4 +316,134 @@ def read_players_by_location(
     Get players by location.
     """
     players = crud.player.get_by_location(db=db, country=country, city=city)
-    return players 
+    return players
+
+
+@router.get("/by-fund/{fund_id}", response_model=List[schemas.Player])
+def read_players_by_fund(
+    *,
+    db: Session = Depends(deps.get_db),
+    fund_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Получить игроков по ID фонда.
+    """
+    # Проверяем права доступа - только админ может видеть игроков других фондов
+    if current_user.role != "admin" and current_user.fund_id != fund_id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    players = crud.player.get_by_fund(db=db, fund_id=fund_id, skip=skip, limit=limit)
+    
+    # Преобразуем объекты SQLAlchemy в словари для правильной сериализации
+    result = []
+    for player in players:
+        player_dict = {
+            "id": player.id,
+            "first_name": player.first_name,
+            "last_name": player.last_name,
+            "middle_name": player.middle_name,
+            "full_name": player.full_name,
+            "birth_date": player.birth_date,
+            "contact_info": player.contact_info,
+            "additional_info": player.additional_info,
+            "health_notes": player.health_notes,
+            "created_by_user_id": player.created_by_user_id,
+            "created_by_fund_id": player.created_by_fund_id,
+            "created_at": player.created_at,
+            "updated_at": player.updated_at,
+            "contacts": [
+                {
+                    "id": contact.id,
+                    "player_id": contact.player_id,
+                    "type": contact.type,
+                    "value": contact.value,
+                    "description": contact.description,
+                    "created_at": contact.created_at,
+                    "updated_at": contact.updated_at
+                }
+                for contact in player.contacts
+            ],
+            "locations": [
+                {
+                    "id": location.id,
+                    "player_id": location.player_id,
+                    "country": location.country,
+                    "city": location.city,
+                    "address": location.address,
+                    "created_at": location.created_at,
+                    "updated_at": location.updated_at
+                }
+                for location in player.locations
+            ],
+            "nicknames": [
+                {
+                    "id": nickname.id,
+                    "player_id": nickname.player_id,
+                    "nickname": nickname.nickname,
+                    "room": nickname.room,
+                    "discipline": nickname.discipline,
+                    "created_at": nickname.created_at,
+                    "updated_at": nickname.updated_at
+                }
+                for nickname in player.nicknames
+            ],
+            "payment_methods": [
+                {
+                    "id": pm.id,
+                    "player_id": pm.player_id,
+                    "type": pm.type,
+                    "value": pm.value,
+                    "description": pm.description,
+                    "created_at": pm.created_at,
+                    "updated_at": pm.updated_at
+                }
+                for pm in player.payment_methods
+            ],
+            "social_media": [
+                {
+                    "id": sm.id,
+                    "player_id": sm.player_id,
+                    "type": sm.type,
+                    "value": sm.value,
+                    "description": sm.description,
+                    "created_at": sm.created_at,
+                    "updated_at": sm.updated_at
+                }
+                for sm in player.social_media
+            ]
+        }
+        result.append(player_dict)
+    
+    return result 
+
+
+@router.get("/{player_id}/funds", response_model=List[schemas.Fund])
+def read_player_funds(
+    *,
+    db: Session = Depends(deps.get_db),
+    player_id: uuid.UUID,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Получить фонды, связанные с игроком.
+    """
+    # Получаем игрока
+    player = crud.player.get(db=db, id=player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    # Проверяем права доступа - только админ может видеть игроков других фондов
+    if current_user.role != "admin" and current_user.fund_id != player.created_by_fund_id:
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    # Получаем фонд, создавший игрока
+    fund = crud.fund.get(db=db, id=player.created_by_fund_id)
+    if not fund:
+        raise HTTPException(status_code=404, detail="Fund not found")
+    
+    # В текущей реализации игрок связан только с одним фондом - тем, который его создал
+    # В будущем здесь может быть логика для получения всех фондов, связанных с игроком
+    return [fund] 

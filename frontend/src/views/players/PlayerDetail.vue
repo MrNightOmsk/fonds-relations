@@ -26,7 +26,7 @@
             </div>
             <div>
               <h1 class="text-2xl font-medium">{{ getPlayerFullName() }}</h1>
-              <p class="text-gray-600">{{ player.nickname }}</p>
+              <p class="text-gray-600">{{ player.nicknames && player.nicknames.length > 0 ? player.nicknames[0].nickname : '' }}</p>
             </div>
           </div>
           <div class="flex space-x-3">
@@ -48,207 +48,205 @@
         </div>
       </div>
       
-      <!-- Вкладки навигации -->
-      <div class="border-b mb-6">
-        <nav class="flex space-x-6">
-          <button 
-            @click="activeTab = 'details'" 
-            class="py-3 px-1 font-medium border-b-2 -mb-px" 
-            :class="activeTab === 'details' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700'"
-          >
-            Информация
-          </button>
-          <button 
-            @click="activeTab = 'methods'" 
-            class="py-3 px-1 font-medium border-b-2 -mb-px" 
-            :class="activeTab === 'methods' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700'"
-          >
-            Методы оплаты
-          </button>
-          <button 
-            @click="activeTab = 'social'" 
-            class="py-3 px-1 font-medium border-b-2 -mb-px" 
-            :class="activeTab === 'social' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700'"
-          >
-            Социальные сети
-          </button>
-          <button 
-            @click="activeTab = 'cases'" 
-            class="py-3 px-1 font-medium border-b-2 -mb-px" 
-            :class="activeTab === 'cases' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700'"
-          >
-            Дела
-          </button>
-        </nav>
-      </div>
-      
-      <!-- Содержимое вкладок -->
-      <div class="tab-content">
-        <!-- Вкладка с информацией об игроке -->
-        <div v-show="activeTab === 'details'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Основная информация -->
-          <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white p-6 rounded-lg shadow-sm">
-              <h2 class="text-lg font-medium mb-4">Основная информация</h2>
-              
-              <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
-                    <input 
-                      v-if="editMode" 
-                      v-model="editForm.first_name" 
-                      type="text" 
-                      class="w-full p-2 border rounded"
-                    />
-                    <p v-else class="p-2 bg-gray-50 rounded">
-                      {{ player.first_name || '-' }}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
-                    <input 
-                      v-if="editMode" 
-                      v-model="editForm.last_name" 
-                      type="text" 
-                      class="w-full p-2 border rounded"
-                    />
-                    <p v-else class="p-2 bg-gray-50 rounded">
-                      {{ player.last_name || '-' }}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
-                    <input 
-                      v-if="editMode" 
-                      v-model="editForm.middle_name" 
-                      type="text" 
-                      class="w-full p-2 border rounded"
-                    />
-                    <p v-else class="p-2 bg-gray-50 rounded">
-                      {{ player.middle_name || '-' }}
-                    </p>
-                  </div>
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Никнейм</label>
-                  <input 
-                    v-if="editMode" 
-                    v-model="editForm.nickname" 
-                    type="text" 
-                    class="w-full p-2 border rounded"
-                  />
-                  <p v-else class="p-2 bg-gray-50 rounded">
-                    {{ player.nickname }}
-                  </p>
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input 
-                    v-if="editMode" 
-                    v-model="editForm.email" 
-                    type="email" 
-                    class="w-full p-2 border rounded"
-                  />
-                  <p v-else class="p-2 bg-gray-50 rounded">
-                    {{ player.email || '-' }}
-                  </p>
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Примечания</label>
-                  <textarea 
-                    v-if="editMode" 
-                    v-model="editForm.notes" 
-                    rows="4" 
-                    class="w-full p-2 border rounded"
-                  ></textarea>
-                  <p v-else class="p-2 bg-gray-50 rounded whitespace-pre-line">
-                    {{ player.notes || 'Нет примечаний' }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <!-- Содержимое всей страницы в линейном виде -->
+      <div class="space-y-6">
+        <!-- Секция с основной информацией -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h2 class="text-lg font-medium mb-4">Основная информация</h2>
           
-          <!-- Боковая панель с дополнительной информацией -->
-          <div class="space-y-6">
-            <div class="bg-white p-6 rounded-lg shadow-sm">
-              <h2 class="text-lg font-medium mb-4">Дополнительно</h2>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+                <input 
+                  v-if="editMode" 
+                  v-model="editForm.first_name" 
+                  type="text" 
+                  class="w-full p-2 border rounded"
+                />
+                <p v-else class="p-2 bg-gray-50 rounded">
+                  {{ player.first_name || '-' }}
+                </p>
+              </div>
               
-              <div class="space-y-4">
-                <div>
-                  <p class="text-sm text-gray-500">Дата создания</p>
-                  <p>{{ formatDate(player.created_at) }}</p>
-                </div>
-                
-                <div>
-                  <p class="text-sm text-gray-500">Последнее обновление</p>
-                  <p>{{ formatDate(player.updated_at) }}</p>
-                </div>
-                
-                <div>
-                  <p class="text-sm text-gray-500">ID игрока</p>
-                  <p>{{ player.id }}</p>
-                </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
+                <input 
+                  v-if="editMode" 
+                  v-model="editForm.last_name" 
+                  type="text" 
+                  class="w-full p-2 border rounded"
+                />
+                <p v-else class="p-2 bg-gray-50 rounded">
+                  {{ player.last_name || '-' }}
+                </p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
+                <input 
+                  v-if="editMode" 
+                  v-model="editForm.middle_name" 
+                  type="text" 
+                  class="w-full p-2 border rounded"
+                />
+                <p v-else class="p-2 bg-gray-50 rounded">
+                  {{ player.middle_name || '-' }}
+                </p>
               </div>
             </div>
             
-            <div class="bg-white p-6 rounded-lg shadow-sm">
-              <h2 class="text-lg font-medium mb-4">Статистика дел</h2>
-              
-              <div v-if="caseStats" class="divide-y">
-                <div class="py-2 flex justify-between">
-                  <span>Всего дел:</span>
-                  <span class="font-medium">{{ caseStats.total || 0 }}</span>
-                </div>
-                <div class="py-2 flex justify-between">
-                  <span>Открытых:</span>
-                  <span class="font-medium">{{ caseStats.open || 0 }}</span>
-                </div>
-                <div class="py-2 flex justify-between">
-                  <span>Закрытых:</span>
-                  <span class="font-medium">{{ caseStats.closed || 0 }}</span>
-                </div>
-              </div>
-              <div v-else class="text-gray-500 text-center">
-                Нет данных о делах
-              </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Никнейм</label>
+              <input 
+                v-if="editMode" 
+                v-model="editForm.nickname" 
+                type="text" 
+                class="w-full p-2 border rounded"
+              />
+              <p v-else class="p-2 bg-gray-50 rounded">
+                {{ player.nicknames && player.nicknames.length > 0 ? player.nicknames[0].nickname : '-' }}
+              </p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input 
+                v-if="editMode" 
+                v-model="editForm.email" 
+                type="email" 
+                class="w-full p-2 border rounded"
+              />
+              <p v-else class="p-2 bg-gray-50 rounded">
+                {{ player.contacts && player.contacts.find(c => c.type === 'email')?.value || '-' }}
+              </p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Примечания</label>
+              <textarea 
+                v-if="editMode" 
+                v-model="editForm.notes" 
+                rows="4" 
+                class="w-full p-2 border rounded"
+              ></textarea>
+              <p v-else class="p-2 bg-gray-50 rounded whitespace-pre-line">
+                {{ player.health_notes || 'Нет примечаний' }}
+              </p>
             </div>
           </div>
         </div>
         
-        <!-- Вкладка с методами оплаты -->
-        <div v-show="activeTab === 'methods'" class="bg-white p-6 rounded-lg shadow-sm">
-          <PlayerPaymentMethodsComponent 
-            v-model="paymentMethods"
-            :player-id="player.id"
-            :editable="canEdit"
-            @add="handleAddPaymentMethod"
-            @delete="handleDeletePaymentMethod"
-          />
+        <!-- Секция с контактами и адресом -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h2 class="text-lg font-medium mb-4">Контактная информация</h2>
+          
+          <div class="mb-4">
+            <h3 class="font-semibold mb-2">Адрес</h3>
+            <div class="grid grid-cols-1 gap-4">
+              <p>
+                {{ player.locations && player.locations.length > 0 
+                   ? formatAddress(player.locations[0])
+                   : 'Адрес не указан' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h3 class="font-semibold mb-2">Контакты</h3>
+            <div v-if="player.contacts && player.contacts.length > 0">
+              <div v-for="(contact, index) in player.contacts" :key="index" class="mb-2">
+                <strong>{{ formatContactType(contact.type) }}:</strong> {{ contact.value }}
+                <span v-if="contact.description" class="text-sm text-gray-500 ml-2">({{ contact.description }})</span>
+              </div>
+            </div>
+            <div v-else class="text-gray-500">
+              Контакты не указаны
+            </div>
+          </div>
         </div>
         
-        <!-- Вкладка с социальными сетями -->
-        <div v-show="activeTab === 'social'" class="bg-white p-6 rounded-lg shadow-sm">
-          <PlayerSocialMediaComponent 
-            v-model="socialMedia"
-            :player-id="player.id"
-            :editable="canEdit"
-            @add="handleAddSocialMedia"
-            @delete="handleDeleteSocialMedia"
-          />
+        <!-- Секция с методами оплаты -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h2 class="text-lg font-medium mb-4">Методы оплаты</h2>
+          <div v-if="player.payment_methods && player.payment_methods.length > 0">
+            <div v-for="(method, index) in player.payment_methods" :key="index" class="mb-4 p-3 border rounded">
+              <h3 class="font-semibold">{{ method.type || 'Метод оплаты' }}</h3>
+              <p><strong>Значение:</strong> {{ method.value || 'Нет данных' }}</p>
+              <p v-if="method.description"><strong>Описание:</strong> {{ method.description }}</p>
+              <p><strong>Добавлен:</strong> {{ formatDate(method.created_at) }}</p>
+            </div>
+          </div>
+          <div v-else class="text-center py-2 text-gray-500">
+            Методы оплаты не найдены
+          </div>
         </div>
         
-        <!-- Вкладка с делами -->
-        <div v-show="activeTab === 'cases'" class="bg-white p-6 rounded-lg shadow-sm">
+        <!-- Секция с социальными сетями -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h2 class="text-lg font-medium mb-4">Социальные сети</h2>
+          <div v-if="player.social_media && player.social_media.length > 0">
+            <div v-for="(social, index) in player.social_media" :key="index" class="mb-4 p-3 border rounded">
+              <h3 class="font-semibold">{{ social.platform || 'Соцсеть' }}</h3>
+              <p v-if="social.url"><strong>Ссылка:</strong> <a :href="social.url" target="_blank" class="text-blue-500 hover:underline">{{ social.url }}</a></p>
+              <p v-if="social.username"><strong>Имя пользователя:</strong> {{ social.username }}</p>
+              <p v-if="social.description"><strong>Описание:</strong> {{ social.description }}</p>
+              <p><strong>Добавлена:</strong> {{ formatDate(social.created_at) }}</p>
+            </div>
+          </div>
+          <div v-else class="text-center py-2 text-gray-500">
+            Социальные сети не найдены
+          </div>
+        </div>
+        
+        <!-- Секция с дополнительной информацией и статистикой -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h2 class="text-lg font-medium mb-4">Дополнительная информация</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p class="text-sm text-gray-500">Дата создания</p>
+              <p>{{ formatDate(player.created_at) }}</p>
+            </div>
+            
+            <div>
+              <p class="text-sm text-gray-500">Последнее обновление</p>
+              <p>{{ formatDate(player.updated_at) }}</p>
+            </div>
+            
+            <div>
+              <p class="text-sm text-gray-500">ID игрока</p>
+              <p>{{ player.id }}</p>
+            </div>
+          </div>
+          
+          <div class="mt-6">
+            <h3 class="font-semibold mb-2">Статистика дел</h3>
+            <div v-if="caseStats" class="grid grid-cols-3 gap-4">
+              <div class="p-3 bg-gray-50 rounded text-center">
+                <p class="text-sm text-gray-500">Всего дел</p>
+                <p class="text-lg font-medium">{{ caseStats.total || 0 }}</p>
+              </div>
+              <div class="p-3 bg-blue-50 rounded text-center">
+                <p class="text-sm text-gray-500">Открытых</p>
+                <p class="text-lg font-medium text-blue-600">{{ caseStats.open || 0 }}</p>
+              </div>
+              <div class="p-3 bg-green-50 rounded text-center">
+                <p class="text-sm text-gray-500">Закрытых</p>
+                <p class="text-lg font-medium text-green-600">{{ caseStats.closed || 0 }}</p>
+              </div>
+            </div>
+            <div v-else class="text-gray-500 text-center py-2">
+              Нет данных о делах
+            </div>
+          </div>
+        </div>
+        
+        <!-- Секция с делами игрока -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
           <h2 class="text-lg font-medium mb-4">Дела игрока</h2>
           
-          <div v-if="loadingCases" class="text-center py-8">
+          <div v-if="loadingCases" class="text-center py-4">
             <div class="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent mx-auto"></div>
             <p class="mt-2 text-gray-600">Загрузка дел...</p>
           </div>
@@ -291,7 +289,7 @@
             </div>
           </div>
           
-          <div v-else class="text-center py-8 text-gray-500">
+          <div v-else class="text-center py-4 text-gray-500">
             У игрока нет дел
           </div>
         </div>
@@ -314,14 +312,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import type { Player, PlayerPaymentMethod, PlayerSocialMedia, Case } from '@/types/models';
+import type { Player, PlayerPaymentMethod, PlayerSocialMedia, CaseExtended } from '@/types/models';
 import { useAuthStore } from '@/stores/auth';
-import PlayerPaymentMethodsComponent from '@/components/player/PlayerPaymentMethods.vue';
-import PlayerSocialMediaComponent from '@/components/player/PlayerSocialMedia.vue';
+import { useCasesApi } from '@/api/cases';
+import { usePlayersApi } from '@/api/players';
+
+// Импортируем компоненты вкладок
+import InformationTab from '@/components/players/tabs/InformationTab.vue';
+import PaymentMethodsTab from '@/components/players/tabs/PaymentMethodsTab.vue';
+import SocialMediaTab from '@/components/players/tabs/SocialMediaTab.vue';
+import CasesTab from '@/components/players/tabs/CasesTab.vue';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const casesApi = useCasesApi();
+const playersApi = usePlayersApi();
 
 const loading = ref(false);
 const loadingCases = ref(false);
@@ -329,7 +335,7 @@ const error = ref<string | null>(null);
 const player = ref<Player | null>(null);
 const paymentMethods = ref<PlayerPaymentMethod[]>([]);
 const socialMedia = ref<PlayerSocialMedia[]>([]);
-const cases = ref<Case[]>([]);
+const cases = ref<CaseExtended[]>([]);
 const caseStats = ref<{total: number, open: number, closed: number} | null>(null);
 const editMode = ref(false);
 const activeTab = ref('details');
@@ -369,31 +375,22 @@ async function fetchPlayer() {
   error.value = null;
   
   try {
-    // Здесь нужно заменить на реальные API-вызовы
-    // player.value = await api.getPlayer(playerId);
+    // Вызываем реальный API для получения данных игрока
+    const response = await playersApi.getPlayerById(playerId);
+    console.log('API Response (Player):', JSON.stringify(response, null, 2));
     
-    // Временный мок-объект
-    player.value = {
-      id: playerId,
-      nickname: 'PlayerOne',
-      first_name: 'Иван',
-      last_name: 'Иванов',
-      middle_name: 'Иванович',
-      email: 'player@example.com',
-      notes: 'Примечания об игроке...',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    // Проверяем, что ответ содержит необходимые данные
+    if (!response || typeof response !== 'object') {
+      console.error('API вернул некорректные данные:', response);
+      error.value = 'Получены некорректные данные с сервера';
+      loading.value = false;
+      return;
+    }
+    
+    player.value = response;
     
     // Инициализация формы редактирования
-    editForm.value = { 
-      nickname: player.value.nickname,
-      first_name: player.value.first_name || '',
-      last_name: player.value.last_name || '',
-      middle_name: player.value.middle_name || '',
-      email: player.value.email || '',
-      notes: player.value.notes || ''
-    };
+    initEditForm();
     
     // Загрузка связанных данных
     await Promise.all([
@@ -402,11 +399,28 @@ async function fetchPlayer() {
       fetchPlayerCases()
     ]);
   } catch (err) {
-    console.error('Error fetching player:', err);
+    console.error('Ошибка при загрузке данных игрока:', err);
     error.value = 'Не удалось загрузить информацию об игроке. Пожалуйста, попробуйте позже.';
   } finally {
     loading.value = false;
   }
+}
+
+function initEditForm() {
+  if (!player.value) return;
+  
+  const emailContact = player.value.contacts?.find(c => c.type === 'email');
+  const primaryNickname = player.value.nicknames?.length > 0 ? player.value.nicknames[0] : null;
+  
+  editForm.value = {
+    first_name: player.value.first_name || '',
+    last_name: player.value.last_name || '',
+    middle_name: player.value.middle_name || '',
+    nickname: primaryNickname?.nickname || '',
+    email: emailContact?.value || '',
+    notes: player.value.health_notes || '',
+    // Другие поля...
+  };
 }
 
 async function fetchPaymentMethods() {
@@ -453,7 +467,9 @@ async function fetchSocialMedia() {
       {
         id: '1',
         player_id: player.value.id,
+        type: 'telegram',  // Добавлено обязательное поле type
         platform: 'telegram',
+        value: '@playerone',  // Добавлено обязательное поле value
         username: '@playerone',
         description: 'Основной аккаунт',
         created_at: new Date().toISOString(),
@@ -462,7 +478,9 @@ async function fetchSocialMedia() {
       {
         id: '2',
         player_id: player.value.id,
+        type: 'vk',  // Добавлено обязательное поле type
         platform: 'vk',
+        value: 'ivanivanov',  // Добавлено обязательное поле value
         username: 'ivanivanov',
         description: '',
         created_at: new Date().toISOString(),
@@ -477,45 +495,12 @@ async function fetchSocialMedia() {
 
 async function fetchPlayerCases() {
   if (!player.value) return;
-  
+
   loadingCases.value = true;
   
   try {
-    // cases.value = await api.getPlayerCases(player.value.id);
+    cases.value = await casesApi.getCasesByPlayer(player.value.id);
     
-    // Временные мок-данные
-    cases.value = [
-      {
-        id: '1',
-        case_number: '001',
-        title: 'Первое дело',
-        description: 'Описание первого дела',
-        case_type: 'scam',
-        status: 'open',
-        amount: 1000,
-        currency: 'USD',
-        player_id: player.value.id,
-        fund_id: '1',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        case_number: '002',
-        title: 'Второе дело',
-        description: 'Описание второго дела',
-        case_type: 'debt',
-        status: 'closed',
-        amount: 500,
-        currency: 'USD',
-        player_id: player.value.id,
-        fund_id: '1',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
-    
-    // Рассчитываем статистику дел
     caseStats.value = {
       total: cases.value.length,
       open: cases.value.filter(c => c.status === 'open' || c.status === 'in_progress').length,
@@ -588,7 +573,7 @@ async function handleDeletePaymentMethod(methodId: string) {
   }
 }
 
-async function handleAddSocialMedia(media: Partial<PlayerSocialMedia>) {
+async function handleAddSocialMedia(media: any) {
   if (!player.value) return;
   
   try {
@@ -598,7 +583,9 @@ async function handleAddSocialMedia(media: Partial<PlayerSocialMedia>) {
     const newMedia: PlayerSocialMedia = {
       id: Math.random().toString(36).substring(2, 9),
       player_id: player.value.id,
+      type: media.platform || 'other',  // Добавляем обязательное поле type
       platform: media.platform || 'other',
+      value: media.username || '',  // Добавляем обязательное поле value
       username: media.username || '',
       description: media.description || '',
       created_at: new Date().toISOString(),
@@ -624,20 +611,32 @@ function getPlayerInitials(): string {
   if (!player.value) return '';
   
   if (player.value.first_name && player.value.last_name) {
-    return `${player.value.first_name[0]}${player.value.last_name[0]}`.toUpperCase();
+    return `${player.value.first_name[0]}${player.value.last_name ? player.value.last_name[0] : ''}`.toUpperCase();
   }
   
-  return player.value.nickname.substring(0, 2).toUpperCase();
+  if (player.value.nicknames && player.value.nicknames.length > 0) {
+    return player.value.nicknames[0].nickname.substring(0, 2).toUpperCase();
+  }
+  
+  return 'ИИ';
 }
 
 function getPlayerFullName(): string {
   if (!player.value) return '';
   
   if (player.value.first_name && player.value.last_name) {
-    return `${player.value.first_name} ${player.value.last_name}`;
+    return `${player.value.first_name} ${player.value.last_name || ''}`;
   }
   
-  return player.value.nickname;
+  if (player.value.full_name) {
+    return player.value.full_name;
+  }
+  
+  if (player.value.nicknames && player.value.nicknames.length > 0) {
+    return player.value.nicknames[0].nickname;
+  }
+  
+  return 'Неизвестный игрок';
 }
 
 function getStatusName(status: string): string {
@@ -661,13 +660,41 @@ function getStatusClass(status: string): string {
 }
 
 function formatDate(dateString: string): string {
-  if (!dateString) return '';
-  
+  if (!dateString) return 'Нет данных';
   const date = new Date(dateString);
-  return date.toLocaleString('ru-RU', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric' 
-  });
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+}
+
+// Добавим функцию для форматирования адреса
+function formatAddress(location: any): string {
+  if (!location) return '';
+  
+  const parts: string[] = [];
+  if (location.country) parts.push(location.country);
+  if (location.city) parts.push(location.city);
+  if (location.address) parts.push(location.address);
+  
+  return parts.join(', ') || 'Адрес не указан';
+}
+
+// Добавим функцию для форматирования типа контакта
+function formatContactType(type: string): string {
+  const types: Record<string, string> = {
+    'email': 'Email',
+    'phone': 'Телефон',
+    'skype': 'Skype',
+    'telegram': 'Telegram',
+    'whatsapp': 'WhatsApp',
+    'viber': 'Viber',
+    'discord': 'Discord'
+  };
+  
+  return types[type] || type;
 }
 </script> 

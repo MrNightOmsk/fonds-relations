@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from uuid import UUID
 
 from app.schemas.player import Player
+from app.schemas.fund import Fund
 
 
 # Общие атрибуты
@@ -11,15 +12,15 @@ class CaseBase(BaseModel):
     title: str
     description: Optional[str] = None
     player_id: UUID
-    status: str = "open"  # open, closed, in_progress
+    status: str  # open, closed, in_progress
     arbitrage_type: Optional[str] = None
-    arbitrage_amount: Optional[float] = None
-    arbitrage_currency: Optional[str] = "USD"
+    arbitrage_amount: Optional[float] = 0.0  # Не может быть отрицательной, по умолчанию 0
+    arbitrage_currency: str = "USD"  # По умолчанию USD, обязательное поле
 
 
 # Свойства для создания
 class CaseCreate(CaseBase):
-    pass
+    created_by_fund_id: UUID  # Обязательное поле - ID фонда
 
 
 # Свойства для обновления
@@ -43,12 +44,17 @@ class Case(CaseBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Расширенная схема для чтения с дополнительными полями
 class CaseExtended(Case):
+    player: Optional[Player] = None
+    fund: Optional[Fund] = None
     closed_by_user_name: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
 
 
 # Базовые схемы для доказательств
@@ -73,7 +79,7 @@ class CaseEvidence(CaseEvidenceBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Базовые схемы для комментариев
@@ -96,7 +102,7 @@ class CaseComment(CaseCommentBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Расширенная схема дела с информацией об игроке
@@ -106,4 +112,4 @@ class CaseWithPlayer(Case):
     evidences: List[CaseEvidence] = []
 
     class Config:
-        from_attributes = True 
+        orm_mode = True 

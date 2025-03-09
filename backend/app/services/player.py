@@ -1,5 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
+import asyncio
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -8,6 +10,7 @@ from app.models.player import Player, PlayerContact, PlayerLocation, PlayerNickn
 from app.models.case import Case
 from app.schemas.player import PlayerCreate, PlayerUpdate
 from app.services import audit
+from app.services.search import search_service
 
 
 def get(db: Session, player_id: UUID) -> Optional[Player]:
@@ -86,6 +89,14 @@ def create(db: Session, obj_in: PlayerCreate, created_by_id: UUID) -> Player:
         performed_by_id=created_by_id,
     )
     
+    # Индексируем игрока в Elasticsearch
+    try:
+        # Запускаем асинхронную задачу индексации
+        asyncio.create_task(search_service.index_player(db_obj))
+    except Exception as e:
+        # Логируем ошибку, но не прерываем выполнение
+        print(f"Error indexing player in Elasticsearch: {str(e)}")
+    
     return db_obj
 
 
@@ -135,6 +146,14 @@ def update(
         changes={"old": old_data, "new": update_data},
         performed_by_id=updated_by_id,
     )
+    
+    # Обновляем индекс игрока в Elasticsearch
+    try:
+        # Запускаем асинхронную задачу индексации
+        asyncio.create_task(search_service.index_player(db_obj))
+    except Exception as e:
+        # Логируем ошибку, но не прерываем выполнение
+        print(f"Error updating player in Elasticsearch: {str(e)}")
     
     return db_obj
 

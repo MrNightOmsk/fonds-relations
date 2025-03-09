@@ -8,6 +8,7 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.version import API_VERSION, LAST_UPDATE, RELEASE_NOTES
 from app.core.health import get_health_status
+from app.services.search import search_service
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -47,5 +48,24 @@ async def root(request: Request):
             "db_status": status["db_status"]
         }
     )
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Инициализация сервисов при запуске приложения
+    """
+    try:
+        # Инициализация индекса Elasticsearch
+        await search_service.create_index()
+        print("Elasticsearch index initialized successfully")
+    except Exception as e:
+        print(f"Error initializing Elasticsearch index: {str(e)}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    Закрытие соединений при остановке приложения
+    """
+    await search_service.close()
 
 app.include_router(api_router, prefix=settings.API_V1_STR) 

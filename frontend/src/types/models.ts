@@ -181,6 +181,12 @@ export interface Case {
   closed_by_user_id?: string;
 }
 
+// Расширенный тип кейса с информацией об игроке и фонде
+export interface CaseExtended extends Case {
+  player?: Player;
+  fund?: Fund;
+}
+
 export interface CaseCreate {
   title: string;
   description: string;

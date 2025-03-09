@@ -13,12 +13,27 @@ class CRUDCase(CRUDBase[Case, CaseCreate, CaseUpdate]):
     def create_with_player(
         self, db: Session, *, obj_in: CaseCreate, player_id: UUID, user_id: UUID, fund_id: UUID
     ) -> Case:
-        obj_in_data = obj_in.model_dump()
+        obj_in_data = obj_in.dict()
+        
+        # Устанавливаем необходимые поля
         obj_in_data["player_id"] = player_id
         obj_in_data["created_by_user_id"] = user_id
         obj_in_data["created_by_fund_id"] = fund_id
+        
+        # Устанавливаем значения по умолчанию, если они не были указаны
+        if obj_in_data.get("status") is None:
+            obj_in_data["status"] = "open"
+        
+        if obj_in_data.get("arbitrage_amount") is None:
+            obj_in_data["arbitrage_amount"] = 0.0
+        
+        if obj_in_data.get("arbitrage_currency") is None:
+            obj_in_data["arbitrage_currency"] = "USD"
+            
+        # Устанавливаем временные метки
         obj_in_data["created_at"] = datetime.utcnow()
         obj_in_data["updated_at"] = datetime.utcnow()
+        
         db_obj = Case(**obj_in_data)
         db.add(db_obj)
         db.commit()
@@ -132,6 +147,17 @@ class CRUDCase(CRUDBase[Case, CaseCreate, CaseUpdate]):
             db.query(CaseEvidence)
             .filter(CaseEvidence.case_id == case_id)
             .order_by(CaseEvidence.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get_by_fund(
+        self, db: Session, *, fund_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[Case]:
+        return (
+            db.query(self.model)
+            .filter(Case.created_by_fund_id == fund_id)
             .offset(skip)
             .limit(limit)
             .all()

@@ -135,6 +135,11 @@
           {{ showEditModal ? 'Редактирование игрока' : 'Создание игрока' }}
         </h3>
         
+        <!-- Сообщение об ошибке -->
+        <div v-if="errorMessage" class="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <p>{{ errorMessage }}</p>
+        </div>
+        
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
           <input 
@@ -400,7 +405,7 @@
 
 <script setup lang="ts">
 // @ts-ignore
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue';
 // @ts-ignore
 import { usePlayersApi } from '@/api/players';
 // @ts-ignore
@@ -423,6 +428,7 @@ const showDeleteConfirm = ref(false);
 const isSubmitting = ref(false);
 const currentPlayerId = ref<string | null>(null);
 const playerToDelete = ref<Player | null>(null);
+const errorMessage = ref<string | null>(null);
 
 // Фильтры
 const fundFilter = ref('');
@@ -815,7 +821,20 @@ async function deletePlayerConfirmed() {
 }
 
 async function savePlayer() {
+  // Проверка обязательных полей
+  if (!formData.value.first_name?.trim()) {
+    errorMessage.value = 'Имя обязательно для заполнения';
+    return;
+  }
+  
   isSubmitting.value = true;
+  errorMessage.value = null; // Сбрасываем ошибку перед отправкой
+  
+  // Генерируем full_name из доступных данных ФИО
+  const firstName = formData.value.first_name || '';
+  const lastName = formData.value.last_name || '';
+  const middleName = formData.value.middle_name || '';
+  formData.value.full_name = `${firstName} ${lastName} ${middleName}`.trim();
   
   // Обновляем контакты в основных данных формы
   formData.value.contacts = formContacts.value;
@@ -849,7 +868,8 @@ async function savePlayer() {
     
     closeModal();
   } catch (error: any) {
-    alert(`Ошибка: ${error.response?.data?.detail || 'Что-то пошло не так'}`);
+    console.error('Ошибка при сохранении игрока:', error);
+    errorMessage.value = error.response?.data?.detail || 'Произошла ошибка при сохранении игрока';
   } finally {
     isSubmitting.value = false;
   }
@@ -860,6 +880,7 @@ function closeModal() {
   showEditModal.value = false;
   currentPlayerId.value = null;
   formData.value = { ...defaultFormData };
+  errorMessage.value = null; // Сбрасываем ошибку при закрытии окна
   formContacts.value = [];
   formLocation.value = {
     country: '',
@@ -889,5 +910,22 @@ onMounted(async () => {
     fetchFunds(),
     fetchPokerRooms()
   ]);
+});
+
+// Отслеживаем изменение флага showCreateModal
+watch(showCreateModal, (newValue) => {
+  if (newValue) {
+    // При открытии модального окна создания игрока сбрасываем все значения
+    formData.value = { ...defaultFormData };
+    formContacts.value = [];
+    formLocation.value = {
+      country: '',
+      city: '',
+      address: ''
+    };
+    formPaymentMethods.value = [];
+    formPokerIds.value = [];
+    errorMessage.value = null;
+  }
 });
 </script> 

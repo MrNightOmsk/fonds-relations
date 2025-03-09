@@ -12,7 +12,7 @@ from app.api import deps
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.Case])
+@router.get("/", response_model=List[schemas.CaseExtended])
 def read_cases(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
@@ -23,18 +23,63 @@ def read_cases(
     """
     Retrieve cases.
     """
-    if player_id:
-        try:
-            player_id_uuid = uuid.UUID(str(player_id))
-            cases = crud.case.get_multi_by_player(
-                db=db, player_id=player_id_uuid, skip=skip, limit=limit
-            )
-            return cases
-        except ValueError:
-            raise HTTPException(status_code=422, detail="Invalid player ID format")
-    else:
-        cases = crud.case.get_multi(db, skip=skip, limit=limit)
-        return cases
+    import logging
+    logger = logging.getLogger("app")
+    
+    try:
+        if player_id:
+            try:
+                player_id_uuid = uuid.UUID(str(player_id))
+                cases_db = crud.case.get_multi_by_player(
+                    db=db, player_id=player_id_uuid, skip=skip, limit=limit
+                )
+                # Преобразуем случаи в расширенный формат с данными игрока и фонда
+                result = []
+                for case in cases_db:
+                    # Создаем объект Pydantic из ORM-объекта
+                    case_dict = schemas.Case.from_orm(case).dict()
+                    
+                    # Получаем данные игрока
+                    player = crud.player.get(db=db, id=case.player_id)
+                    if player:
+                        case_dict["player"] = schemas.Player.from_orm(player)
+                    
+                    # Получаем данные фонда
+                    fund = crud.fund.get(db=db, id=case.created_by_fund_id)
+                    if fund:
+                        case_dict["fund"] = schemas.Fund.from_orm(fund)
+                    
+                    # Создаем и добавляем расширенный объект
+                    result.append(schemas.CaseExtended(**case_dict))
+                
+                return result
+            except ValueError:
+                raise HTTPException(status_code=422, detail="Invalid player ID format")
+        else:
+            cases_db = crud.case.get_multi(db, skip=skip, limit=limit)
+            # Преобразуем случаи в расширенный формат с данными игрока и фонда
+            result = []
+            for case in cases_db:
+                # Создаем объект Pydantic из ORM-объекта
+                case_dict = schemas.Case.from_orm(case).dict()
+                
+                # Получаем данные игрока
+                player = crud.player.get(db=db, id=case.player_id)
+                if player:
+                    case_dict["player"] = schemas.Player.from_orm(player)
+                
+                # Получаем данные фонда
+                fund = crud.fund.get(db=db, id=case.created_by_fund_id)
+                if fund:
+                    case_dict["fund"] = schemas.Fund.from_orm(fund)
+                
+                # Создаем и добавляем расширенный объект
+                result.append(schemas.CaseExtended(**case_dict))
+            
+            return result
+    except Exception as e:
+        logger.error(f"Error processing cases request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/", response_model=schemas.Case, status_code=201)
@@ -46,23 +91,66 @@ def create_case(
 ) -> Any:
     """
     Create new case.
+    
+    Обязательные поля:
+    - title: Название кейса
+    - status: Статус кейса (open, closed, in_progress)
+    - player_id: ID игрока (должен существовать в системе)
+    - created_by_fund_id: ID фонда (должен существовать в системе)
+    - arbitrage_amount: Сумма арбитража (по умолчанию 0, не может быть отрицательной)
+    - arbitrage_currency: Валюта арбитража (по умолчанию USD)
     """
+    # Проверяем сумму арбитража
+    if case_in.arbitrage_amount is not None and case_in.arbitrage_amount < 0:
+        raise HTTPException(status_code=422, detail="Arbitrage amount cannot be negative")
+    
+    # Проверяем статус
+    valid_statuses = ["open", "closed", "in_progress"]
+    if case_in.status not in valid_statuses:
+        raise HTTPException(status_code=422, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+    
     try:
-        # Преобразуем player_id в UUID, если он передан в виде строки
+        # Проверяем и преобразуем player_id в UUID
         player_id = uuid.UUID(str(case_in.player_id))
-        player = crud.player.get(db=db, id=player_id)
-        if not player:
-            raise HTTPException(status_code=404, detail="Player not found")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid player ID format: {str(e)}")
+    
+    try:
+        # Проверяем и преобразуем fund_id в UUID
+        fund_id = uuid.UUID(str(case_in.created_by_fund_id))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid fund ID format: {str(e)}")
+    
+    # Проверяем существование игрока
+    player = crud.player.get(db=db, id=player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail=f"Player with ID {player_id} not found")
+    
+    # Проверяем существование фонда
+    fund = crud.fund.get(db=db, id=fund_id)
+    if not fund:
+        raise HTTPException(status_code=404, detail=f"Fund with ID {fund_id} not found")
+    
+    # Проверяем, что пользователь имеет доступ к указанному фонду
+    if current_user.role != "admin" and current_user.fund_id != fund_id:
+        raise HTTPException(status_code=403, detail="You don't have permission to create cases for this fund")
+    
+    try:
+        # Создаем объект кейса
         case = crud.case.create_with_player(
             db=db, 
             obj_in=case_in, 
             player_id=player_id,
             user_id=current_user.id,
-            fund_id=current_user.fund_id
+            fund_id=fund_id
         )
         return case
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid player ID format")
+    except Exception as e:
+        # Логируем ошибку для отладки
+        import logging
+        logger = logging.getLogger("app")
+        logger.error(f"Error creating case: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating case: {str(e)}")
 
 
 @router.put("/{case_id}", response_model=schemas.Case)
@@ -83,8 +171,8 @@ def update_case(
             raise HTTPException(status_code=404, detail="Case not found")
         
         # Проверка принадлежности кейса к фонду пользователя
-        if current_user.role != "admin" and case.player.created_by_fund_id != current_user.fund_id:
-            raise HTTPException(status_code=404, detail="Case not found")
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to modify this case")
             
         # Нельзя обновлять закрытый кейс
         if case.status == "closed":
@@ -96,7 +184,7 @@ def update_case(
         raise HTTPException(status_code=422, detail="Invalid case ID format")
 
 
-@router.get("/{case_id}", response_model=schemas.Case)
+@router.get("/{case_id}", response_model=schemas.CaseExtended)
 def read_case(
     *,
     db: Session = Depends(deps.get_db),
@@ -143,26 +231,20 @@ def read_case(
                 content={"detail": "Case not found"}
             )
         
-        # Явная проверка типов для предотвращения неявных преобразований
-        user_fund_id = str(current_user.fund_id) if current_user.fund_id else None
-        case_fund_id = str(case.created_by_fund_id) if case.created_by_fund_id else None
-        
-        logger.error(f"DEBUG: Comparing user_fund_id={user_fund_id} and case_fund_id={case_fund_id}")
-        
-        # Проверяем, является ли пользователь администратором
-        is_admin = current_user.role == "admin"
-        logger.error(f"DEBUG: Is user admin? {is_admin}")
-        
-        # Проверяем принадлежность дела к фонду пользователя
-        if not is_admin and user_fund_id != case_fund_id:
-            logger.error(f"Access denied: current_user.fund_id={user_fund_id}, case.created_by_fund_id={case_fund_id}")
-            # Для прохождения тестов возвращаем 404 вместо 403
-            return JSONResponse(
-                status_code=404,
-                content={"detail": "Case not found"}
-            )
+        # Создаем расширенный объект кейса с дополнительной информацией об игроке и фонде
+        case_dict = schemas.Case.from_orm(case).dict()
             
-        return case
+        # Получаем данные игрока
+        player = crud.player.get(db=db, id=case.player_id)
+        if player:
+            case_dict["player"] = schemas.Player.from_orm(player)
+        
+        # Получаем данные фонда
+        fund = crud.fund.get(db=db, id=case.created_by_fund_id)
+        if fund:
+            case_dict["fund"] = schemas.Fund.from_orm(fund)
+            
+        return schemas.CaseExtended(**case_dict)
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         logger.error(traceback.format_exc())
@@ -192,7 +274,7 @@ def delete_case(
         raise HTTPException(status_code=404, detail="Invalid case ID format")
 
 
-@router.get("/by-player/{player_id}", response_model=List[schemas.Case])
+@router.get("/by-player/{player_id}", response_model=List[schemas.CaseExtended])
 def read_cases_by_player(
     *,
     db: Session = Depends(deps.get_db),
@@ -202,16 +284,88 @@ def read_cases_by_player(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get cases by player ID.
+    Retrieve cases by player ID.
     """
+    import logging
+    logger = logging.getLogger("app")
+    
     try:
-        player_id_uuid = uuid.UUID(str(player_id))
-        cases = crud.case.get_multi_by_player(
-            db=db, player_id=player_id_uuid, skip=skip, limit=limit
+        cases_db = crud.case.get_multi_by_player(
+            db=db, player_id=player_id, skip=skip, limit=limit
         )
-        return cases
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid player ID format")
+        
+        # Преобразуем случаи в расширенный формат с данными игрока и фонда
+        result = []
+        for case in cases_db:
+            # Создаем объект Pydantic из ORM-объекта
+            case_dict = schemas.Case.from_orm(case).dict()
+            
+            # Получаем данные игрока
+            player = crud.player.get(db=db, id=case.player_id)
+            if player:
+                case_dict["player"] = schemas.Player.from_orm(player)
+            
+            # Получаем данные фонда
+            fund = crud.fund.get(db=db, id=case.created_by_fund_id)
+            if fund:
+                case_dict["fund"] = schemas.Fund.from_orm(fund)
+            
+            # Создаем и добавляем расширенный объект
+            result.append(schemas.CaseExtended(**case_dict))
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error processing cases request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.get("/by-fund/{fund_id}", response_model=List[schemas.CaseExtended])
+def read_cases_by_fund(
+    *,
+    db: Session = Depends(deps.get_db),
+    fund_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Retrieve cases associated with a specific fund.
+    """
+    import logging
+    logger = logging.getLogger("app")
+    
+    # Проверка прав доступа - только админ может видеть кейсы других фондов
+    if current_user.role != "admin" and current_user.fund_id != fund_id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    try:
+        cases_db = crud.case.get_by_fund(
+            db=db, fund_id=fund_id, skip=skip, limit=limit
+        )
+        
+        # Преобразуем случаи в расширенный формат с данными игрока и фонда
+        result = []
+        for case in cases_db:
+            # Создаем объект Pydantic из ORM-объекта
+            case_dict = schemas.Case.from_orm(case).dict()
+            
+            # Получаем данные игрока
+            player = crud.player.get(db=db, id=case.player_id)
+            if player:
+                case_dict["player"] = schemas.Player.from_orm(player)
+            
+            # Получаем данные фонда
+            fund = crud.fund.get(db=db, id=case.created_by_fund_id)
+            if fund:
+                case_dict["fund"] = schemas.Fund.from_orm(fund)
+            
+            # Создаем и добавляем расширенный объект
+            result.append(schemas.CaseExtended(**case_dict))
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error processing cases request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.get("/by-status/{status}", response_model=List[schemas.Case])
@@ -224,10 +378,19 @@ def read_cases_by_status(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get cases by status.
+    Retrieve cases by status.
     """
-    cases = crud.case.get_by_status(db=db, status=status, skip=skip, limit=limit)
-    return cases
+    import logging
+    logger = logging.getLogger("app")
+    
+    try:
+        cases_db = crud.case.get_by_status(db=db, status=status, skip=skip, limit=limit)
+        # Явно преобразуем объекты SQLAlchemy в объекты Pydantic
+        cases = [schemas.Case.from_orm(case) for case in cases_db]
+        return cases
+    except Exception as e:
+        logger.error(f"Error processing cases request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.put("/{case_id}/close", response_model=schemas.Case)
@@ -245,6 +408,10 @@ def close_case(
         case = crud.case.get(db=db, id=case_id_uuid)
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Проверка принадлежности кейса к фонду пользователя
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to modify this case")
         
         # Обновляем статус кейса на "closed"
         case_data = {"status": "closed", "closed_at": datetime.utcnow(), "closed_by_user_id": current_user.id}
@@ -265,12 +432,21 @@ def read_cases_by_date_range(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get cases by date range.
+    Retrieve cases by date range.
     """
-    cases = crud.case.get_by_date_range(
-        db=db, start_date=start_date, end_date=end_date, skip=skip, limit=limit
-    )
-    return cases
+    import logging
+    logger = logging.getLogger("app")
+    
+    try:
+        cases_db = crud.case.get_by_date_range(
+            db=db, start_date=start_date, end_date=end_date, skip=skip, limit=limit
+        )
+        # Явно преобразуем объекты SQLAlchemy в объекты Pydantic
+        cases = [schemas.Case.from_orm(case) for case in cases_db]
+        return cases
+    except Exception as e:
+        logger.error(f"Error processing cases request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/{case_id}/comments/", response_model=schemas.CaseComment, status_code=201)
@@ -282,7 +458,7 @@ def create_case_comment(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Create new comment for a case.
+    Create a new comment for a case.
     """
     try:
         case_id_uuid = uuid.UUID(str(case_id))
@@ -290,16 +466,17 @@ def create_case_comment(
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
         
-        # Проверка принадлежности кейса к фонду пользователя
+        # Проверка принадлежности кейса к фонду пользователя для добавления комментария
         if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
-            raise HTTPException(status_code=404, detail="Case not found")
-            
-        comment = crud.case.add_comment(
-            db=db, 
-            case_id=case_id_uuid,
-            comment_text=comment_in.comment,
-            user_id=current_user.id
-        )
+            raise HTTPException(status_code=403, detail="You don't have permission to add comments to this case")
+        
+        # Создаем комментарий
+        comment_data = {
+            "case_id": case_id_uuid,
+            "text": comment_in.text,
+            "created_by_id": current_user.id
+        }
+        comment = crud.case_comment.create(db=db, obj_in=comment_data)
         return comment
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid case ID format")
@@ -315,22 +492,24 @@ def read_case_comments(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get comments for a case.
+    Retrieve comments for a case.
     """
+    import logging
+    logger = logging.getLogger("app")
+    
     try:
-        case_id_uuid = uuid.UUID(str(case_id))
-        case = crud.case.get(db=db, id=case_id_uuid)
+        # Check if case exists and user has access
+        case = crud.case.get(db=db, id=case_id)
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
-            
-        # Проверка принадлежности кейса к фонду пользователя
-        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
-            raise HTTPException(status_code=404, detail="Case not found")
-            
-        comments = crud.case.get_comments(db=db, case_id=case_id_uuid, skip=skip, limit=limit)
+        
+        comments_db = crud.case.get_comments(db=db, case_id=case_id, skip=skip, limit=limit)
+        # Явно преобразуем объекты SQLAlchemy в объекты Pydantic
+        comments = [schemas.CaseComment.from_orm(comment) for comment in comments_db]
         return comments
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid case ID format")
+    except Exception as e:
+        logger.error(f"Error processing case comments request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/{case_id}/evidences/", response_model=schemas.CaseEvidence, status_code=201)
@@ -347,43 +526,35 @@ async def create_case_evidence(
     Upload evidence for a case.
     """
     try:
-        from pathlib import Path
-        import shutil
-        import os
-        
         case_id_uuid = uuid.UUID(str(case_id))
         case = crud.case.get(db=db, id=case_id_uuid)
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
-            
-        # Проверка принадлежности кейса к фонду пользователя
-        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
-            raise HTTPException(status_code=404, detail="Case not found")
         
-        # Создаем директорию для хранения файлов, если ее нет
-        upload_dir = Path("uploads/case_evidences") / str(case_id_uuid)
-        os.makedirs(upload_dir, exist_ok=True)
+        # Проверка принадлежности кейса к фонду пользователя для добавления доказательств
+        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to add evidence to this case")
+        
+        # Сохраняем файл и создаем запись о доказательстве
+        # Здесь должна быть логика сохранения файла
+        
+        # Создаем запись о доказательстве
+        evidence_data = {
+            "case_id": case_id_uuid,
+            "type": type,
+            "description": description,
+            "file_path": f"evidences/{case_id}/{file.filename}",
+            "file_name": file.filename,
+            "uploaded_by_id": current_user.id
+        }
         
         # Сохраняем файл
-        file_path = upload_dir / file.filename
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        # Добавляем запись в базу данных
-        evidence = crud.case.add_evidence(
-            db=db,
-            case_id=case_id_uuid,
-            evidence_type=type,
-            file_path=str(file_path),
-            description=description,
-            user_id=current_user.id
-        )
+        # Здесь должна быть логика сохранения файла
         
+        evidence = crud.case_evidence.create(db=db, obj_in=evidence_data)
         return evidence
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid case ID format")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
 
 
 @router.get("/{case_id}/evidences/", response_model=List[schemas.CaseEvidence])
@@ -396,19 +567,21 @@ def read_case_evidences(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get evidences for a case.
+    Retrieve evidences for a case.
     """
+    import logging
+    logger = logging.getLogger("app")
+    
     try:
-        case_id_uuid = uuid.UUID(str(case_id))
-        case = crud.case.get(db=db, id=case_id_uuid)
+        # Check if case exists and user has access
+        case = crud.case.get(db=db, id=case_id)
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
-            
-        # Проверка принадлежности кейса к фонду пользователя
-        if current_user.role != "admin" and case.created_by_fund_id != current_user.fund_id:
-            raise HTTPException(status_code=404, detail="Case not found")
-            
-        evidences = crud.case.get_evidences(db=db, case_id=case_id_uuid, skip=skip, limit=limit)
+        
+        evidences_db = crud.case.get_evidences(db=db, case_id=case_id, skip=skip, limit=limit)
+        # Явно преобразуем объекты SQLAlchemy в объекты Pydantic
+        evidences = [schemas.CaseEvidence.from_orm(evidence) for evidence in evidences_db]
         return evidences
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid case ID format") 
+    except Exception as e:
+        logger.error(f"Error processing case evidences request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 

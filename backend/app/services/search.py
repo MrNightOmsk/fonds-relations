@@ -11,22 +11,27 @@ from app.schemas.player import PlayerSearchResult
 
 class SearchService:
     def __init__(self):
-        self.es = AsyncElasticsearch([settings.ELASTICSEARCH_URI])
+        self.es = AsyncElasticsearch([settings.ELASTICSEARCH_URL])
         self.index_name = "players"
     
     async def create_index(self) -> None:
-        """Create the Elasticsearch index with proper mappings."""
-        if not await self.es.indices.exists(index=self.index_name):
+        """Create the Elasticsearch index if it doesn't exist."""
+        if not await self.es.indices.exists(index="players"):
             await self.es.indices.create(
-                index=self.index_name,
+                index="players",
                 body={
                     "settings": {
                         "analysis": {
                             "analyzer": {
-                                "custom_analyzer": {
+                                "russian_analyzer": {
                                     "type": "custom",
                                     "tokenizer": "standard",
-                                    "filter": ["lowercase", "russian_stop", "russian_stemmer"],
+                                    "filter": [
+                                        "lowercase",
+                                        "russian_stop",
+                                        "russian_stemmer",
+                                        "edge_ngram_filter"
+                                    ]
                                 }
                             },
                             "filter": {
@@ -37,72 +42,49 @@ class SearchService:
                                 "russian_stemmer": {
                                     "type": "stemmer",
                                     "language": "russian"
+                                },
+                                "edge_ngram_filter": {
+                                    "type": "edge_ngram",
+                                    "min_gram": 2,
+                                    "max_gram": 20
                                 }
                             }
                         }
                     },
                     "mappings": {
                         "properties": {
-                            "id": {"type": "keyword"},
                             "full_name": {
                                 "type": "text",
-                                "analyzer": "custom_analyzer",
+                                "analyzer": "russian_analyzer",
                                 "fields": {
                                     "raw": {"type": "keyword"}
                                 }
                             },
-                            "nicknames": {
-                                "type": "nested",
-                                "properties": {
-                                    "room": {"type": "keyword"},
-                                    "nickname": {
-                                        "type": "text",
-                                        "analyzer": "custom_analyzer",
-                                        "fields": {
-                                            "raw": {"type": "keyword"}
-                                        }
-                                    },
-                                    "discipline": {"type": "keyword"}
-                                }
-                            },
-                            "contacts": {
-                                "type": "nested",
-                                "properties": {
-                                    "type": {"type": "keyword"},
-                                    "value": {
-                                        "type": "text",
-                                        "analyzer": "custom_analyzer",
-                                        "fields": {
-                                            "raw": {"type": "keyword"}
-                                        }
-                                    }
-                                }
-                            },
-                            "locations": {
-                                "type": "nested",
-                                "properties": {
-                                    "country": {
-                                        "type": "text",
-                                        "analyzer": "custom_analyzer",
-                                        "fields": {
-                                            "raw": {"type": "keyword"}
-                                        }
-                                    },
-                                    "city": {
-                                        "type": "text",
-                                        "analyzer": "custom_analyzer",
-                                        "fields": {
-                                            "raw": {"type": "keyword"}
-                                        }
-                                    },
-                                    "address": {
-                                        "type": "text",
-                                        "analyzer": "custom_analyzer"
-                                    }
-                                }
-                            },
+                            "first_name": {"type": "text", "analyzer": "russian_analyzer"},
+                            "last_name": {"type": "text", "analyzer": "russian_analyzer"},
+                            "middle_name": {"type": "text", "analyzer": "russian_analyzer"},
+                            "description": {"type": "text", "analyzer": "russian_analyzer"},
+                            "nicknames": {"type": "nested", "properties": {
+                                "id": {"type": "keyword"},
+                                "player_id": {"type": "keyword"},
+                                "nickname": {"type": "text", "analyzer": "russian_analyzer"},
+                                "created_at": {"type": "date"},
+                                "updated_at": {"type": "date"}
+                            }},
+                            "contacts": {"type": "nested", "properties": {
+                                "type": {"type": "keyword"},
+                                "value": {"type": "text", "fields": {"raw": {"type": "keyword"}}}
+                            }},
+                            "locations": {"type": "nested", "properties": {
+                                "country": {"type": "keyword"},
+                                "city": {"type": "text", "fields": {"raw": {"type": "keyword"}}}
+                            }},
                             "cases_count": {"type": "integer"},
-                            "latest_case_date": {"type": "date"}
+                            "open_cases_count": {"type": "integer"},
+                            "latest_case_date": {"type": "date"},
+                            "fund_name": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
+                            "contacts_display": {"type": "text"},
+                            "locations_display": {"type": "text"}
                         }
                     }
                 }
@@ -123,8 +105,8 @@ class SearchService:
             ],
             "contacts": [
                 {
-                    "type": c.contact_type,
-                    "value": c.contact_value
+                    "type": c.type,
+                    "value": c.value
                 }
                 for c in player.contacts
             ],
@@ -154,34 +136,22 @@ class SearchService:
         skip: int = 0,
         limit: int = 10,
     ) -> List[PlayerSearchResult]:
-        """
-        Search for players using various criteria.
+        """Search for players based on the query."""
+        must_conditions = []
         
-        Args:
-            query: Search query string
-            room: Filter by poker room
-            discipline: Filter by game discipline
-            skip: Number of results to skip
-            limit: Maximum number of results to return
-        """
-        # Build the search query
-        must_conditions = [
-            {
+        # Добавляем основной поисковый запрос с поддержкой неточного поиска
+        if query:
+            must_conditions.append({
                 "multi_match": {
                     "query": query,
-                    "fields": [
-                        "full_name^3",
-                        "nicknames.nickname^2",
-                        "contacts.value",
-                        "locations.country",
-                        "locations.city",
-                        "locations.address"
-                    ],
+                    "fields": ["full_name^3", "nicknames.nickname^2", 
+                               "first_name", "last_name", "description", 
+                               "contacts.value", "locations.city"],
                     "type": "best_fields",
-                    "fuzziness": "AUTO"
+                    "fuzziness": "AUTO",
+                    "prefix_length": 1
                 }
-            }
-        ]
+            })
         
         if room:
             must_conditions.append({
@@ -225,9 +195,16 @@ class SearchService:
                 PlayerSearchResult(
                     id=UUID(source["id"]),
                     full_name=source["full_name"],
-                    nicknames=source["nicknames"],
+                    first_name=source["full_name"].split()[0] if source["full_name"] else "",
+                    last_name=source.get("last_name", None),
+                    middle_name=source.get("middle_name", None),
+                    description=source.get("description", None),
+                    nicknames=[],
                     cases_count=source["cases_count"],
-                    latest_case_date=source.get("latest_case_date")
+                    latest_case_date=source.get("latest_case_date"),
+                    fund_name=source.get("fund_name", ""),
+                    contacts=source.get("contacts_display", []),
+                    locations=source.get("locations_display", [])
                 )
             )
         

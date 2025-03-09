@@ -26,7 +26,7 @@ class PlayerContact(PlayerContactBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Базовые схемы для местоположения игрока
@@ -51,7 +51,7 @@ class PlayerLocation(PlayerLocationBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Базовые схемы для никнеймов игрока
@@ -76,7 +76,7 @@ class PlayerNickname(PlayerNicknameBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Базовые схемы для платежных методов игрока
@@ -101,7 +101,7 @@ class PlayerPaymentMethod(PlayerPaymentMethodBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Базовые схемы для социальных медиа игрока
@@ -126,7 +126,7 @@ class PlayerSocialMedia(PlayerSocialMediaBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Общие атрибуты
@@ -174,7 +174,7 @@ class Player(PlayerBase):
     social_media: List[PlayerSocialMedia] = []
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Расширенная информация об игроке
@@ -200,4 +200,4 @@ class PlayerSearchResult(BaseModel):
     social_media: List[PlayerSocialMedia] = []
 
     class Config:
-        from_attributes = True 
+        orm_mode = True 

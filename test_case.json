@@ -1,0 +1,10 @@
+{
+  "title": "Test Case",
+  "description": "Test case description",
+  "player_id": "e5f2224c-9b8b-44a2-9b8f-04412bbaa6c7",
+  "status": "open",
+  "arbitrage_type": "Test Arbitrage",
+  "arbitrage_amount": 100.50,
+  "arbitrage_currency": "USD",
+  "created_by_fund_id": "859ccc88-8a2e-4a9c-9f2d-e11a90aebc1b"
+} 

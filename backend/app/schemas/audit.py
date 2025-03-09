@@ -25,7 +25,7 @@ class AuditLog(AuditLogBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Notification subscription schemas
@@ -50,7 +50,7 @@ class NotificationSubscription(NotificationSubscriptionBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Notification message schema
@@ -63,4 +63,4 @@ class NotificationMessage(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True 
+        orm_mode = True 
