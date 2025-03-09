@@ -9,6 +9,7 @@ on:
       - 'frontend/**'
       - '.github/workflows/deploy.yml'
       - 'docker-compose.yml'
+      - 'db_backup.dump'
 
 jobs:
   deploy:
@@ -90,9 +91,9 @@ jobs:
           # Проверяем логи контейнеров
           docker-compose logs --tail=50
           
-          # Восстановление базы данных из дампа, если файл существует
-          if [ -f /tmp/db_backup.dump ]; then
-            echo "Database dump found. Starting restore process..."
+          # Восстановление базы данных из дампа из репозитория
+          if [ -f db_backup.dump ]; then
+            echo "Database dump found in repository. Starting restore process..."
             # Получаем имя контейнера базы данных
             DB_CONTAINER=$(docker ps | grep db | awk '{print $1}')
             
@@ -100,7 +101,7 @@ jobs:
               echo "Database container found: $DB_CONTAINER"
               
               # Копируем дамп в контейнер
-              docker cp /tmp/db_backup.dump $DB_CONTAINER:/tmp/
+              docker cp db_backup.dump $DB_CONTAINER:/tmp/
               
               # Останавливаем все контейнеры кроме базы данных для предотвращения конфликтов
               echo "Stopping application containers to prevent conflicts..."
@@ -128,7 +129,48 @@ jobs:
               echo "Database container not found. Skipping restore."
             fi
           else
-            echo "No database dump found at /tmp/db_backup.dump. Skipping restore."
+            echo "No database dump found in repository. Checking legacy location..."
+            
+            # Для обратной совместимости проверяем старое расположение
+            if [ -f /tmp/db_backup.dump ]; then
+              echo "Database dump found at /tmp/db_backup.dump. Starting restore process..."
+              # Получаем имя контейнера базы данных
+              DB_CONTAINER=$(docker ps | grep db | awk '{print $1}')
+              
+              if [ -n "$DB_CONTAINER" ]; then
+                echo "Database container found: $DB_CONTAINER"
+                
+                # Копируем дамп в контейнер
+                docker cp /tmp/db_backup.dump $DB_CONTAINER:/tmp/
+                
+                # Останавливаем все контейнеры кроме базы данных для предотвращения конфликтов
+                echo "Stopping application containers to prevent conflicts..."
+                docker stop $(docker ps | grep -v db | grep -v "CONTAINER" | awk '{print $1}') || true
+                
+                # Восстанавливаем базу данных
+                echo "Restoring database from dump..."
+                # Сначала очищаем существующую базу данных
+                docker exec $DB_CONTAINER dropdb -U postgres app --if-exists
+                docker exec $DB_CONTAINER createdb -U postgres app
+                
+                # Восстанавливаем из дампа
+                docker exec $DB_CONTAINER pg_restore -U postgres -d app -c /tmp/db_backup.dump
+                
+                # Запускаем контейнеры обратно
+                echo "Starting application containers..."
+                docker-compose up -d
+                
+                # Ждем запуска контейнеров
+                echo "Waiting for containers to restart..."
+                sleep 20
+                
+                echo "Database restore completed."
+              else
+                echo "Database container not found. Skipping restore."
+              fi
+            else
+              echo "No database dump found at /tmp/db_backup.dump. Skipping restore."
+            fi
           fi
           
           # Проверяем, что бэкенд контейнер запущен
