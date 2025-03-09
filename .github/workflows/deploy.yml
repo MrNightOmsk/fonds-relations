@@ -75,6 +75,16 @@ jobs:
           sed -i "s/your-email@gmail.com/${{ secrets.SMTP_USER }}/g" .env
           sed -i "s/your-app-specific-password/${{ secrets.SMTP_PASSWORD }}/g" .env
           
+          # Явно добавляем SECRET_KEY если его нет
+          if ! grep -q "SECRET_KEY" .env; then
+            echo "SECRET_KEY=${{ secrets.APP_SECRET_KEY }}" >> .env
+          fi
+          
+          # Выводим текущие значения для диагностики (без показа секретов)
+          echo "Environment variables configured:"
+          grep -v "PASSWORD\|KEY" .env || true
+          echo "Secret variables masked for security"
+          
           cd ..
           
           # Запускаем контейнеры
