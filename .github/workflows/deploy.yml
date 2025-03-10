@@ -203,6 +203,24 @@ jobs:
             fi
           fi
           
+          # Создаем дефолтных пользователей
+          echo "Creating default users..."
+          # Копируем скрипт в контейнер бэкенда
+          BACKEND_CONTAINER=$(docker ps | grep backend | awk '{print $1}')
+          if [ -n "$BACKEND_CONTAINER" ]; then
+            echo "Backend container found: $BACKEND_CONTAINER"
+            docker cp create_default_users.py $BACKEND_CONTAINER:/app/
+            
+            # Устанавливаем необходимые зависимости в контейнере
+            docker exec $BACKEND_CONTAINER pip install psycopg2-binary passlib
+            
+            # Запускаем скрипт
+            docker exec $BACKEND_CONTAINER python /app/create_default_users.py
+            echo "Default users creation completed."
+          else
+            echo "Backend container not found. Skipping user creation."
+          fi
+          
           # Проверяем, что бэкенд контейнер запущен
           if ! docker ps | grep -q backend; then
             echo "Backend container is not running!"
