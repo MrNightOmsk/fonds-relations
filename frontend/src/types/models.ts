@@ -192,6 +192,7 @@ export interface CaseCreate {
   description: string;
   player_id: string;
   status: 'open' | 'closed';
+  created_by_fund_id: string;
   arbitrage_type?: string;
   arbitrage_amount?: number;
   arbitrage_currency?: string;

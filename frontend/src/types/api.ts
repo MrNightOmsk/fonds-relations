@@ -103,6 +103,7 @@ export interface CaseCreate {
   title: string;
   description?: string;
   status: string;
+  created_by_fund_id: string;
 }
 
 export interface CaseUpdate {
