@@ -99,6 +99,25 @@ export function usePlayersApi() {
         console.log('- contacts:', response.data.contacts?.length || 0, 'шт.');
         console.log('- locations:', response.data.locations?.length || 0, 'шт.');
         
+        // Специальная проверка никнеймов
+        if (response.data.nicknames === undefined) {
+          console.warn('ВНИМАНИЕ! Поле nicknames отсутствует в ответе API');
+          // Создаем пустой массив никнеймов, если его нет в ответе
+          response.data.nicknames = [];
+        } else if (!Array.isArray(response.data.nicknames)) {
+          console.error('ОШИБКА! Поле nicknames не является массивом:', response.data.nicknames);
+          // Преобразуем в пустой массив
+          response.data.nicknames = [];
+        } else {
+          console.log('Никнеймы в ответе API:', JSON.stringify(response.data.nicknames));
+          // Проверяем структуру каждого никнейма
+          for (const nickname of response.data.nicknames) {
+            if (!nickname.nickname) {
+              console.warn('ВНИМАНИЕ! Найден некорректный никнейм без поля nickname:', nickname);
+            }
+          }
+        }
+        
         // Делаем копию данных, чтобы избежать проблем с реактивностью
         return { ...response.data };
       } catch (error) {

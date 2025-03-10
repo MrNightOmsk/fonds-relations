@@ -231,6 +231,21 @@ const submitForm = async () => {
     const casesApi = useCasesApi();
     const authStore = useAuthStore();
     
+    // Проверка наличия пользователя и его фонда
+    if (!authStore.user) {
+      console.error('Ошибка: Пользователь не авторизован');
+      alert('Необходимо войти в систему для создания кейса');
+      submitting.value = false;
+      return;
+    }
+    
+    if (!authStore.user.fund_id) {
+      console.error('Ошибка: У пользователя нет привязки к фонду', authStore.user);
+      alert('У вашей учетной записи отсутствует привязка к фонду. Обратитесь к администратору.');
+      submitting.value = false;
+      return;
+    }
+    
     // Создаем объект с данными кейса
     const caseData = {
       title: form.value.title,
@@ -239,9 +254,10 @@ const submitForm = async () => {
       status: form.value.status,
       arbitrage_amount: form.value.amount ? parseFloat(form.value.amount) : 0.0,
       arbitrage_currency: form.value.currency || 'USD',
-      created_by_fund_id: authStore.user?.fund_id
+      created_by_fund_id: authStore.user.fund_id
     };
     
+    console.log('Данные пользователя:', authStore.user);
     console.log('Отправка данных для создания кейса:', caseData);
     
     // Отправляем запрос на создание
@@ -254,9 +270,29 @@ const submitForm = async () => {
     
     // Сбрасываем форму
     resetForm();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ошибка при создании кейса:', error);
-    alert('Произошла ошибка при создании кейса');
+    
+    // Проверка на ошибку валидации и вывод информативного сообщения
+    if (error.response && error.response.data && error.response.data.detail) {
+      // Обработка детальной информации об ошибке
+      const errorDetails = error.response.data.detail;
+      let errorMessage = 'Ошибка при создании кейса: ';
+      
+      if (Array.isArray(errorDetails)) {
+        errorDetails.forEach(detail => {
+          const field = detail.loc[detail.loc.length - 1];
+          errorMessage += `поле "${field}" - ${detail.msg}; `;
+        });
+      } else {
+        errorMessage += errorDetails;
+      }
+      
+      console.error(errorMessage);
+      alert(errorMessage);
+    } else {
+      alert('Произошла ошибка при создании кейса');
+    }
   } finally {
     submitting.value = false;
   }

@@ -1,75 +1,165 @@
 <template>
-  <div class="players-list-container">
-    <div class="header-section">
-      <h1 class="text-2xl font-bold mb-4">Список игроков</h1>
-      <div class="flex items-center gap-2 mb-4">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Поиск игроков..."
-          class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          @input="filterPlayers"
-        />
+  <div class="players-page container mx-auto px-4 py-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <h1 class="text-2xl font-bold">Список игроков</h1>
+      <router-link 
+        v-if="userCanCreatePlayers" 
+        to="/players/create" 
+        class="mt-2 md:mt-0 btn-primary"
+      >
+        Добавить игрока
+      </router-link>
+    </div>
+
+    <!-- Фильтры и поиск -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="flex flex-wrap gap-4">
+        <!-- Поиск -->
+        <div class="flex-grow max-w-md">
+          <label class="sr-only">Поиск</label>
+          <div class="relative">
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Поиск по имени или никнейму..." 
+              class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md"
+              @input="filterPlayers"
+            />
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="text-gray-500">🔍</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <!-- Индикатор загрузки -->
+    <div v-if="loading" class="bg-white rounded-lg shadow p-6 text-center">
+      <div class="flex justify-center items-center p-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
     </div>
 
-    <div v-else-if="filteredPlayers.length === 0" class="py-12 text-center text-gray-500">
-      <p>Игроки не найдены</p>
+    <!-- Сообщение об отсутствии игроков -->
+    <div v-else-if="paginatedPlayers.length === 0" class="bg-white rounded-lg shadow p-6 text-center">
+      <p class="text-lg text-gray-600">Игроки не найдены</p>
     </div>
 
-    <div v-else class="players-grid">
-      <div v-for="player in filteredPlayers" :key="player.id" class="player-card" @click="viewPlayerDetails(player)">
-        <div class="card-header">
-          <h3 class="text-lg font-bold">{{ player.full_name }}</h3>
+    <!-- Сетка карточек -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div v-for="player in paginatedPlayers" :key="player.id" class="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <!-- Заголовок карточки с именем -->
+        <div class="p-4 border-b border-gray-200">
+          <h3 class="font-semibold text-lg truncate" @click="viewPlayerDetails(player)">{{ player.full_name }}</h3>
         </div>
-        <div class="card-content">
-          <div v-if="player.nicknames && player.nicknames.length > 0" class="mb-2">
-            <p class="text-sm text-gray-600">Никнеймы:</p>
-            <p class="text-sm">
-              {{ player.nicknames.map(nick => nick.nickname).join(', ') }}
-            </p>
+        
+        <!-- Основное содержимое карточки -->
+        <div class="p-4 space-y-3">
+          <!-- Никнеймы -->
+          <div v-if="player.nicknames && player.nicknames.length > 0" class="flex flex-wrap gap-2">
+            <span 
+              v-for="nickname in player.nicknames.slice(0, 3)" 
+              :key="nickname.id" 
+              class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+            >
+              {{ nickname.nickname }}
+            </span>
+            <span 
+              v-if="player.nicknames.length > 3" 
+              class="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded"
+            >
+              +{{ player.nicknames.length - 3 }}
+            </span>
           </div>
-          <div v-if="player.contacts && player.contacts.length > 0" class="mb-2">
-            <p class="text-sm text-gray-600">Контакты:</p>
-            <p v-for="contact in player.contacts.slice(0, 2)" :key="contact.id" class="text-sm">
-              {{ contact.type }}: {{ contact.value }}
-            </p>
-            <p v-if="player.contacts.length > 2" class="text-sm text-blue-500">
-              +{{ player.contacts.length - 2 }} ещё...
-            </p>
+          
+          <!-- Информация о кейсах -->
+          <div class="border-t border-gray-100 pt-2 mt-2">
+            <div class="text-sm font-medium mb-1">Кейсы:</div>
+            <div class="flex flex-wrap gap-2">
+              <router-link 
+                :to="`/cases?player_id=${player.id}&status=active`" 
+                class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs flex items-center"
+              >
+                <span class="mr-1">🟢</span>
+                Активные: {{ getPlayerCaseCount(player.id, 'active') }}
+              </router-link>
+              <router-link 
+                :to="`/cases?player_id=${player.id}&status=completed`" 
+                class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs flex items-center"
+              >
+                <span class="mr-1">✅</span>
+                Завершенные: {{ getPlayerCaseCount(player.id, 'completed') }}
+              </router-link>
+            </div>
+            <div v-if="getPlayerTotalCaseCount(player.id) > 0" class="mt-1">
+              <router-link 
+                :to="`/cases?player_id=${player.id}`" 
+                class="text-xs text-blue-600 hover:text-blue-800"
+              >
+                Все кейсы игрока →
+              </router-link>
+            </div>
+            <div v-else class="text-xs text-gray-500 mt-1">
+              Нет активных кейсов
+            </div>
+          </div>
+          
+          <!-- Контакты -->
+          <div v-if="player.contacts && player.contacts.length > 0" class="space-y-1">
+            <div v-for="contact in player.contacts.slice(0, 2)" :key="contact.id" class="flex items-center text-sm text-gray-600">
+              <span class="mr-1 w-16 text-gray-500">{{ getContactIcon(contact.type) }} {{ contact.type }}:</span>
+              <span class="truncate">{{ contact.value }}</span>
+            </div>
+            <div v-if="player.contacts.length > 2" class="text-xs text-gray-500">
+              и еще {{ player.contacts.length - 2 }} контакта(ов)
+            </div>
           </div>
         </div>
-        <div class="card-footer flex justify-between items-center">
-          <span class="text-xs text-gray-500">Создан: {{ formatDate(player.created_at) }}</span>
-          <button class="btn-details" @click.stop="viewPlayerDetails(player)">
-            Подробнее
+        
+        <!-- Футер карточки -->
+        <div class="p-3 bg-gray-50 text-xs text-gray-500 rounded-b-lg flex justify-between">
+          <span>{{ formatDate(player.created_at) }}</span>
+          <button 
+            @click="viewPlayerDetails(player)" 
+            class="text-blue-600 hover:text-blue-800"
+          >
+            Подробнее →
           </button>
         </div>
       </div>
     </div>
 
-    <div class="pagination-controls" v-if="filteredPlayers.length > 0">
-      <button 
-        :disabled="currentPage === 1" 
-        @click="currentPage--" 
-        class="pagination-btn"
-        :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
-      >
-        Предыдущая
-      </button>
-      <span>Страница {{ currentPage }} из {{ totalPages }}</span>
-      <button 
-        :disabled="currentPage === totalPages" 
-        @click="currentPage++" 
-        class="pagination-btn"
-        :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
-      >
-        Следующая
-      </button>
+    <!-- Пагинация -->
+    <div class="flex justify-center mt-6" v-if="totalPages > 1">
+      <div class="flex space-x-2">
+        <button 
+          @click="currentPage > 1 && (currentPage--)" 
+          class="px-3 py-1 rounded border" 
+          :class="currentPage === 1 ? 'text-gray-400 border-gray-200' : 'text-blue-600 border-blue-300 hover:bg-blue-50'"
+          :disabled="currentPage === 1"
+        >
+          &larr;
+        </button>
+        
+        <button 
+          v-for="page in paginationPages" 
+          :key="page" 
+          @click="currentPage = page" 
+          class="px-3 py-1 rounded border" 
+          :class="currentPage === page ? 'bg-blue-600 text-white border-blue-600' : 'text-blue-600 border-blue-300 hover:bg-blue-50'"
+        >
+          {{ page }}
+        </button>
+        
+        <button 
+          @click="currentPage < totalPages && (currentPage++)" 
+          class="px-3 py-1 rounded border" 
+          :class="currentPage === totalPages ? 'text-gray-400 border-gray-200' : 'text-blue-600 border-blue-300 hover:bg-blue-50'"
+          :disabled="currentPage === totalPages"
+        >
+          &rarr;
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -82,10 +172,13 @@ import { useRouter } from 'vue-router';
 // @ts-ignore
 import { usePlayersApi } from '@/api/players';
 // @ts-ignore
+import { useAuthStore } from '@/stores/auth';
+// @ts-ignore
 import type { Player } from '@/types/models';
 
 const router = useRouter();
 const playersApi = usePlayersApi();
+const authStore = useAuthStore();
 
 // Состояние
 const players = ref<Player[]>([]);
@@ -93,12 +186,19 @@ const loading = ref(true);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 12;
+const playerCases = ref<Record<string, any>>({});
+
+// Проверка прав на создание игроков
+const userCanCreatePlayers = computed(() => {
+  return authStore.isAdmin || authStore.user?.role === 'manager';
+});
 
 // Функция загрузки данных
 const loadPlayers = async () => {
   loading.value = true;
   try {
     players.value = await playersApi.getPlayers();
+    await fetchPlayerCases();
   } catch (error) {
     console.error('Ошибка при загрузке игроков:', error);
   } finally {
@@ -111,7 +211,7 @@ const filterPlayers = () => {
   currentPage.value = 1; // Сбрасываем пагинацию при поиске
 };
 
-// Вычисляемые свойства
+// Фильтрованные игроки
 const filteredPlayers = computed(() => {
   let result = players.value;
   
@@ -119,41 +219,64 @@ const filteredPlayers = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(player => {
-      return (
-        player.full_name.toLowerCase().includes(query) ||
-        (player.nicknames && player.nicknames.some(nick => nick.nickname.toLowerCase().includes(query)))
-      );
+      // Поиск по полному имени
+      if (player.full_name && player.full_name.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Поиск по никнеймам
+      if (player.nicknames && player.nicknames.some(n => n.nickname.toLowerCase().includes(query))) {
+        return true;
+      }
+      
+      // Поиск по контактам
+      if (player.contacts && player.contacts.some(c => c.value && c.value.toLowerCase().includes(query))) {
+        return true;
+      }
+      
+      return false;
     });
   }
   
-  // Пагинация
+  // Если не администратор, то показываем только игроков из фонда пользователя
+  if (!authStore.isAdmin && authStore.user?.fund_id) {
+    result = result.filter(p => p.created_by_fund_id === authStore.user?.fund_id);
+  }
+  
+  return result;
+});
+
+// Пагинация
+const paginatedPlayers = computed(() => {
   const startIndex = (currentPage.value - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  return result.slice(startIndex, endIndex);
+  return filteredPlayers.value.slice(startIndex, endIndex);
 });
 
+// Общее количество страниц
 const totalPages = computed(() => {
-  if (players.value.length === 0) return 1;
+  return Math.ceil(filteredPlayers.value.length / itemsPerPage);
+});
+
+// Номера страниц для пагинации
+const paginationPages = computed(() => {
+  const pages = [];
+  const maxVisiblePages = 5;
+  let startPage = Math.max(1, currentPage.value - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages.value, startPage + maxVisiblePages - 1);
   
-  let filtered = players.value;
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(player => {
-      return (
-        player.full_name.toLowerCase().includes(query) ||
-        (player.nicknames && player.nicknames.some(nick => nick.nickname.toLowerCase().includes(query)))
-      );
-    });
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
   }
   
-  return Math.ceil(filtered.length / itemsPerPage);
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  
+  return pages;
 });
 
-// Методы
-const viewPlayerDetails = (player: Player) => {
-  router.push({ name: 'PlayerDetail', params: { id: player.id } });
-};
-
+// Функция для форматирования даты
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('ru-RU', {
@@ -162,6 +285,67 @@ const formatDate = (dateString: string) => {
     day: 'numeric'
   }).format(date);
 };
+
+// Переход к детальной информации об игроке
+const viewPlayerDetails = (player: Player) => {
+  router.push({ 
+    path: `/players/${player.id}`
+  });
+};
+
+// Получение иконки типа контакта
+function getContactIcon(type: string): string {
+  const icons: Record<string, string> = {
+    'email': '✉️',
+    'phone': '📱',
+    'telegram': '📞',
+    'whatsapp': '💬',
+    'gipsyteam': '🎮',
+    'vk': '👥',
+    'facebook': '👤',
+    'instagram': '📷',
+    'twitter': '🐦',
+    'skype': '🗣️',
+    'discord': '💬',
+    'other': '🔖'
+  };
+  return icons[type] || '📝';
+}
+
+// Функция для получения счетчика кейсов игрока по статусу
+function getPlayerCaseCount(playerId: string, status: string): number {
+  if (!playerCases.value[playerId]) {
+    return 0;
+  }
+  return playerCases.value[playerId][status] || 0;
+}
+
+// Функция для получения общего количества кейсов игрока
+function getPlayerTotalCaseCount(playerId: string): number {
+  if (!playerCases.value[playerId]) {
+    return 0;
+  }
+  return Object.values(playerCases.value[playerId])
+    .reduce((sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0);
+}
+
+// Функция для получения данных о кейсах игроков
+async function fetchPlayerCases() {
+  try {
+    // В реальном приложении здесь был бы запрос к API
+    // Для демонстрации заполним данными-заглушками
+    for (const player of players.value) {
+      // Генерируем случайные данные для демонстрации
+      playerCases.value[player.id] = {
+        active: Math.floor(Math.random() * 3),
+        completed: Math.floor(Math.random() * 5),
+        paused: Math.floor(Math.random() * 2),
+      };
+    }
+  } catch (error) {
+    console.error('Ошибка при получении данных о кейсах игроков:', error);
+  }
+}
 
 // Хуки жизненного цикла
 onMounted(() => {

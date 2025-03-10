@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 
 // Создаем экземпляр Axios с базовой конфигурацией
 const api: AxiosInstance = axios.create({
+  // Используем относительный URL с правильным префиксом, который будет обработан прокси
   baseURL: '/api/v1',
   headers: {
     'Content-Type': 'application/json',

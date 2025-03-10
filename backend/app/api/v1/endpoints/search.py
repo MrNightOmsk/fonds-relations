@@ -2,20 +2,24 @@ from typing import Any, List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api import deps
 from app.models import User
+from app.models.player import Player
 from app.services.search import search_service
 from app.schemas.player import PlayerSearchResult
 from app import crud
+from app.utils.logger import logger
 
 router = APIRouter()
 
 
 class UnifiedSearchResult(BaseModel):
-    players: List[PlayerSearchResult]
-    total_players: int
+    players: List[PlayerSearchResult] = []
+    cases: List[Any] = []
+    total_players: int = 0
+    total_cases: int = 0
 
 
 @router.get("/unified", response_model=UnifiedSearchResult)
@@ -45,10 +49,41 @@ async def unified_search(
         
         return UnifiedSearchResult(
             players=players,
-            total_players=len(players)  # В будущем можно получать общее количество из ES
+            total_players=len(players),  # В будущем можно получать общее количество из ES
+            cases=[],  # Пока заглушка для кейсов
+            total_cases=0
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка поиска: {str(e)}")
+        error_msg = str(e)
+        logger.error(f"Ошибка при поиске: {error_msg}")
+        
+        # Если это ошибка с Elasticsearch, возвращаем более информативное сообщение
+        if "ConnectionError" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Поисковый сервис временно недоступен. Пожалуйста, повторите запрос позже."
+            )
+        
+        # Если это ошибка с индексом "no such index" - предлагаем инициализировать индекс
+        if "index_not_found_exception" in error_msg.lower():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Поисковый индекс не найден. Необходимо инициализировать поисковый индекс."
+            )
+            
+        # Если это ошибка с маппингом или типами полей
+        if "illegal_argument_exception" in error_msg.lower() or "search_phase_execution_exception" in error_msg.lower():
+            # Вернуть пустой результат вместо ошибки, чтобы не блокировать работу приложения
+            logger.warning(f"Проблема со структурой индекса: {error_msg}. Возвращаем пустой результат.")
+            return UnifiedSearchResult(
+                players=[],
+                total_players=0,
+                cases=[],
+                total_cases=0
+            )
+            
+        # Для всех остальных ошибок
+        raise HTTPException(status_code=500, detail=f"Ошибка поиска: {error_msg}")
 
 
 @router.post("/init", status_code=200)
@@ -63,6 +98,28 @@ async def initialize_search_index(
         return {"status": "success", "message": "Индекс успешно создан"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка инициализации индекса: {str(e)}")
+
+
+@router.delete("/delete-index", status_code=200)
+async def delete_search_index(
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Удаляет индекс Elasticsearch. Требуются права администратора.
+    Внимание: эта операция приведет к потере всех данных поискового индекса!
+    """
+    try:
+        # Проверяем существование индекса перед удалением
+        if await search_service.es.indices.exists(index=search_service.index_name):
+            await search_service.es.indices.delete(index=search_service.index_name)
+            logger.info(f"Индекс {search_service.index_name} успешно удален")
+            return {"status": "success", "message": f"Индекс {search_service.index_name} успешно удален"}
+        else:
+            logger.info(f"Индекс {search_service.index_name} не существует")
+            return {"status": "warning", "message": f"Индекс {search_service.index_name} не существует"}
+    except Exception as e:
+        logger.error(f"Ошибка при удалении индекса: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления индекса: {str(e)}")
 
 
 @router.post("/index-players", status_code=200)
@@ -92,6 +149,77 @@ async def index_all_players(
             "indexed_count": indexed_count
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка индексации игроков: {str(e)}")
+
+
+@router.post("/index-all-players", status_code=200)
+async def index_all_players_batched(
+    *,
+    db: Session = Depends(deps.get_db),
+    batch_size: int = Query(100, description="Размер партии игроков для индексации"),
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Индексирует всех игроков в Elasticsearch в нескольких партиях. Требуются права администратора.
+    """
+    try:
+        # Получаем общее количество игроков
+        total_players = db.query(Player).count()
+        
+        # Индексируем игроков партиями
+        total_indexed = 0
+        failed_count = 0
+        
+        for offset in range(0, total_players, batch_size):
+            try:
+                # Получаем текущую партию игроков
+                players = (
+                    db.query(Player)
+                    .options(
+                        # Загружаем связанные данные для предотвращения множества запросов
+                        joinedload(Player.contacts),
+                        joinedload(Player.locations),
+                        joinedload(Player.nicknames),
+                        joinedload(Player.cases),
+                        joinedload(Player.created_by_fund)
+                    )
+                    .offset(offset)
+                    .limit(batch_size)
+                    .all()
+                )
+                
+                # Индексируем каждого игрока в партии
+                batch_indexed = 0
+                for player in players:
+                    try:
+                        await search_service.index_player(player)
+                        batch_indexed += 1
+                    except Exception as player_error:
+                        # Логируем ошибку, но продолжаем для других игроков
+                        logger.error(f"Ошибка при индексации игрока {player.id}: {str(player_error)}")
+                        failed_count += 1
+                
+                total_indexed += batch_indexed
+                logger.info(f"Партия {offset//batch_size + 1}: проиндексировано {batch_indexed} игроков")
+                
+            except Exception as batch_error:
+                # Логируем ошибку партии, но продолжаем для следующих партий
+                logger.error(f"Ошибка при индексации партии, начиная с {offset}: {str(batch_error)}")
+        
+        # Формируем сообщение о результатах
+        message = f"Всего проиндексировано {total_indexed} игроков из {total_players}"
+        if failed_count > 0:
+            message += f" (не удалось проиндексировать {failed_count} игроков)"
+        
+        return {
+            "status": "success", 
+            "message": message,
+            "indexed_count": total_indexed,
+            "total_count": total_players,
+            "failed_count": failed_count
+        }
+    except Exception as e:
+        logger.error(f"Общая ошибка индексации: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка индексации игроков: {str(e)}")
 
 

@@ -3,6 +3,15 @@
  */
 
 /**
+ * Никнейм игрока
+ */
+export interface PlayerNickname {
+  nickname: string;
+  room: string;
+  discipline?: string;
+}
+
+/**
  * Результат поиска по игрокам
  */
 export interface SearchPlayer {
@@ -11,9 +20,16 @@ export interface SearchPlayer {
   first_name?: string;
   last_name?: string;
   middle_name?: string;
+  description?: string;
   details?: string;
   fund_id?: string;
   fund_name?: string;
+  nicknames?: PlayerNickname[];
+  contacts?: string[];
+  locations?: string[];
+  cases_count?: number;
+  latest_case_date?: string;
+  updated_at?: string;
 }
 
 /**
@@ -27,12 +43,14 @@ export interface SearchCase {
   player_name?: string;
   fund_id?: string;
   fund_name?: string;
-  created_at: string;
+  created_at?: string;
   updated_at?: string;
+  created_by?: string;
+  updated_by?: string;
 }
 
 /**
- * Общий результат унифицированного поиска
+ * Результат унифицированного поиска (все типы вместе)
  */
 export interface UnifiedSearchResult {
   players: SearchPlayer[];

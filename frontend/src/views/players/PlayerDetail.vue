@@ -26,7 +26,17 @@
             </div>
             <div>
               <h1 class="text-2xl font-medium">{{ getPlayerFullName() }}</h1>
-              <p class="text-gray-600">{{ player.nicknames && player.nicknames.length > 0 ? player.nicknames[0].nickname : '' }}</p>
+              <p class="text-gray-600" v-if="player.nicknames && Array.isArray(player.nicknames) && player.nicknames.length > 0 && player.nicknames[0].nickname">
+                {{ player.nicknames[0].nickname }}
+                <span v-if="player.nicknames[0].room" class="text-gray-500">({{ player.nicknames[0].room }})</span>
+              </p>
+              <p class="text-gray-600" v-else>
+                <!-- Отображаем информацию, что никнейм отсутствует, если в режиме отладки -->
+                <span v-if="player.nicknames === undefined">Никнеймы не загружены</span>
+                <span v-else-if="!Array.isArray(player.nicknames)">Неверный формат никнеймов</span>
+                <span v-else-if="player.nicknames.length === 0">Нет никнеймов</span>
+                <span v-else>Проблема с данными никнейма</span>
+              </p>
             </div>
           </div>
           <div class="flex space-x-3">
@@ -105,7 +115,11 @@
                 class="w-full p-2 border rounded"
               />
               <p v-else class="p-2 bg-gray-50 rounded">
-                {{ player.nicknames && player.nicknames.length > 0 ? player.nicknames[0].nickname : '-' }}
+                <span v-if="player.nicknames && Array.isArray(player.nicknames) && player.nicknames.length > 0 && player.nicknames[0].nickname">
+                  {{ player.nicknames[0].nickname }}
+                  <span v-if="player.nicknames[0].room" class="text-gray-500">({{ player.nicknames[0].room }})</span>
+                </span>
+                <span v-else>-</span>
               </p>
             </div>
             
@@ -134,6 +148,26 @@
                 {{ player.health_notes || 'Нет примечаний' }}
               </p>
             </div>
+          </div>
+        </div>
+        
+        <!-- Секция с никнеймами игрока -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h2 class="text-lg font-medium mb-4">Никнеймы игрока</h2>
+          
+          <div v-if="player.nicknames && player.nicknames.length > 0" class="space-y-2">
+            <div v-for="(nickname, index) in player.nicknames" :key="index" class="p-3 border rounded-lg bg-gray-50">
+              <div class="flex justify-between">
+                <div>
+                  <span class="font-medium">{{ nickname.nickname }}</span>
+                  <span v-if="nickname.room" class="ml-2 text-gray-600">({{ nickname.room }})</span>
+                  <span v-if="nickname.discipline" class="ml-2 text-gray-500">{{ nickname.discipline }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-gray-500 p-3 bg-gray-50 rounded-lg text-center">
+            У игрока нет никнеймов
           </div>
         </div>
         
@@ -379,6 +413,17 @@ async function fetchPlayer() {
     const response = await playersApi.getPlayerById(playerId);
     console.log('API Response (Player):', JSON.stringify(response, null, 2));
     
+    // Отладочный лог для никнеймов
+    if (response?.nicknames) {
+      console.log('ОТЛАДКА НИКНЕЙМОВ: Никнеймы в ответе API:', response.nicknames);
+      console.log('ОТЛАДКА НИКНЕЙМОВ: Количество никнеймов:', response.nicknames.length);
+      response.nicknames.forEach((nick, idx) => {
+        console.log(`ОТЛАДКА НИКНЕЙМОВ: Никнейм #${idx+1}:`, nick);
+      });
+    } else {
+      console.warn('ОТЛАДКА НИКНЕЙМОВ: В ответе API не найдены никнеймы!');
+    }
+    
     // Проверяем, что ответ содержит необходимые данные
     if (!response || typeof response !== 'object') {
       console.error('API вернул некорректные данные:', response);
@@ -388,6 +433,13 @@ async function fetchPlayer() {
     }
     
     player.value = response;
+    
+    // Еще раз проверяем никнеймы после присвоения
+    if (player.value?.nicknames) {
+      console.log('ОТЛАДКА НИКНЕЙМОВ: Никнеймы в player.value:', player.value.nicknames);
+    } else {
+      console.warn('ОТЛАДКА НИКНЕЙМОВ: В player.value не найдены никнеймы!');
+    }
     
     // Инициализация формы редактирования
     initEditForm();
@@ -614,8 +666,15 @@ function getPlayerInitials(): string {
     return `${player.value.first_name[0]}${player.value.last_name ? player.value.last_name[0] : ''}`.toUpperCase();
   }
   
-  if (player.value.nicknames && player.value.nicknames.length > 0) {
-    return player.value.nicknames[0].nickname.substring(0, 2).toUpperCase();
+  // Отладочный лог для проверки никнеймов при генерации инициалов
+  console.log('ОТЛАДКА ИНИЦИАЛОВ: Проверка никнеймов:', player.value.nicknames);
+  
+  if (player.value.nicknames && Array.isArray(player.value.nicknames) && player.value.nicknames.length > 0) {
+    const firstNickname = player.value.nicknames[0];
+    if (firstNickname && firstNickname.nickname) {
+      // Безопасно получаем первые два символа никнейма
+      return firstNickname.nickname.substring(0, 2).toUpperCase();
+    }
   }
   
   return 'ИИ';
@@ -632,8 +691,14 @@ function getPlayerFullName(): string {
     return player.value.full_name;
   }
   
-  if (player.value.nicknames && player.value.nicknames.length > 0) {
-    return player.value.nicknames[0].nickname;
+  // Отладочный лог для проверки никнеймов при формировании полного имени
+  console.log('ОТЛАДКА ПОЛНОГО ИМЕНИ: Проверка никнеймов:', player.value.nicknames);
+  
+  if (player.value.nicknames && Array.isArray(player.value.nicknames) && player.value.nicknames.length > 0) {
+    const firstNickname = player.value.nicknames[0];
+    if (firstNickname && firstNickname.nickname) {
+      return firstNickname.nickname;
+    }
   }
   
   return 'Неизвестный игрок';

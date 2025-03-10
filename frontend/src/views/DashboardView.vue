@@ -32,106 +32,115 @@
       </div>
     </div>
     
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Карточка со статистикой -->
-      <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h2 class="text-xl font-semibold mb-4">Статистика</h2>
-        <div v-if="loading" class="text-gray-500">
-          <div class="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent inline-block mr-2"></div>
-          Загрузка статистики...
-        </div>
-        <div v-else class="space-y-4">
-          <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
-            <span class="font-medium">Всего игроков:</span>
-            <span class="bg-blue-100 text-blue-800 py-1 px-2 rounded-full">{{ stats.players.total }}</span>
-          </div>
-          <div class="flex justify-between items-center p-2 bg-green-50 rounded">
-            <span class="font-medium">Активных кейсов:</span>
-            <span class="bg-green-100 text-green-800 py-1 px-2 rounded-full">
-              {{ (stats.cases.open || 0) + (stats.cases.in_progress || 0) }}
-            </span>
-          </div>
-          <div class="flex justify-between items-center p-2 bg-purple-50 rounded">
-            <span class="font-medium">Закрытых кейсов:</span>
-            <span class="bg-purple-100 text-purple-800 py-1 px-2 rounded-full">
-              {{ (stats.cases.closed || 0) + (stats.cases.resolved || 0) }}
-            </span>
-          </div>
-        </div>
-      </div>
-    
-      <!-- Секция последних кейсов -->
-      <div class="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">Последние кейсы</h2>
-          <button @click="navigateTo('/cases')" class="text-blue-600 text-sm hover:underline">
-            Все кейсы
-          </button>
-        </div>
-        <div v-if="loading" class="text-center py-8 text-gray-500">
-          <div class="animate-spin h-6 w-6 border-2 border-blue-500 rounded-full border-t-transparent inline-block mb-2"></div>
-          <p>Загрузка кейсов...</p>
-        </div>
-        <div v-else-if="recentCases.length === 0" class="text-center py-8 text-gray-500">
-          Нет доступных кейсов
-        </div>
-        <div v-else class="space-y-3">
-          <div v-for="case_item in recentCases" :key="case_item.id" 
-              class="p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer"
-              @click="navigateTo(`/cases/${case_item.id}`)">
-            <div class="flex justify-between">
-              <h3 class="font-medium">{{ case_item.title }}</h3>
-              <span :class="getStatusClass(case_item.status)" class="text-xs px-2 py-1 rounded-full">
-                {{ getStatusText(case_item.status) }}
-              </span>
-            </div>
-            <div class="text-sm text-gray-500 mt-1">
-              <span v-if="case_item.player_name">
-                Игрок: <span class="text-gray-700">{{ case_item.player_name }}</span>
-              </span>
-              <span v-if="case_item.created_at" class="ml-2">
-                Создан: <span class="text-gray-700">{{ formatDate(case_item.created_at) }}</span>
-              </span>
-            </div>
+    <!-- Административные функции (только для админов) -->
+    <div v-if="isAdmin" class="admin-section mb-6">
+      <h2 class="text-lg font-medium mb-2">Административные функции</h2>
+      <div class="border p-4 bg-red-50 rounded-lg">
+        <div class="flex flex-col space-y-3">
+          <div>
+            <p class="text-sm text-gray-700 mb-2">
+              Дополнительные функции администрирования доступны в 
+              <router-link to="/admin" class="text-blue-600 hover:text-blue-800 underline">
+                панели администратора
+              </router-link>.
+            </p>
           </div>
         </div>
       </div>
     </div>
     
-    <!-- Последние активности -->
-    <div class="bg-white p-6 rounded-lg shadow-sm mt-6">
-      <h2 class="text-xl font-semibold mb-4">Последние активности</h2>
-      <div v-if="loading" class="text-center py-8 text-gray-500">
-        <div class="animate-spin h-6 w-6 border-2 border-blue-500 rounded-full border-t-transparent inline-block mb-2"></div>
-        <p>Загрузка активностей...</p>
+    <!-- Статистика -->
+    <div class="stats-section mb-6">
+      <h2 class="text-lg font-medium mb-2">Статистика</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="stat-card bg-white p-4 border rounded-lg">
+          <p class="text-gray-500 text-sm">Кейсов в работе</p>
+          <p class="text-2xl font-bold">{{ stats.cases ? stats.cases.activeCases || 0 : 0 }}</p>
+        </div>
+        <div class="stat-card bg-white p-4 border rounded-lg">
+          <p class="text-gray-500 text-sm">Всего игроков</p>
+          <p class="text-2xl font-bold">{{ stats.players ? stats.players.total || 0 : 0 }}</p>
+        </div>
+        <div class="stat-card bg-white p-4 border rounded-lg">
+          <p class="text-gray-500 text-sm">Действий за неделю</p>
+          <p class="text-2xl font-bold">{{ stats.weeklyActions || 0 }}</p>
+        </div>
       </div>
-      <div v-else-if="activities.length === 0" class="text-center py-8 text-gray-500">
-        Нет недавних активностей
+    </div>
+    
+    <!-- Последние действия -->
+    <div class="latest-actions mb-6">
+      <h2 class="text-lg font-medium mb-2">Последние действия</h2>
+      <div class="border rounded-lg overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Время</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Пользователь</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действие</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-if="!activities || activities.length === 0">
+              <td colspan="3" class="px-4 py-2 text-sm text-gray-500 text-center">Нет недавних действий</td>
+            </tr>
+            <tr v-for="action in activities || []" :key="action.id">
+              <td class="px-4 py-2 text-sm text-gray-500">{{ formatDateTime(action.timestamp || action.created_at) }}</td>
+              <td class="px-4 py-2 text-sm text-gray-500">{{ action.user || 'Система' }}</td>
+              <td class="px-4 py-2 text-sm text-gray-900">{{ action.description }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <ul v-else class="divide-y divide-gray-200">
-        <li v-for="activity in activities" :key="activity.id" class="py-3">
-          <div class="flex items-start">
-            <div class="flex-1">
-              <p class="font-medium">{{ activity.description }}</p>
-              <p class="text-sm text-gray-500">{{ formatDate(activity.created_at) }}</p>
-            </div>
-          </div>
-        </li>
-      </ul>
     </div>
     
     <!-- Модальное окно создания кейса -->
-    <CreateCaseModal :show="showCreateCaseModal" @close="showCreateCaseModal = false" @created="handleCaseCreated" />
+    <CreateCaseModal 
+      v-if="showCreateCaseModal" 
+      @close="showCreateCaseModal = false" 
+      @created="handleCaseCreated"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useSearchApi } from '@/api/search';
 import UnifiedSearch from '@/components/search/UnifiedSearch.vue';
 import CreateCaseModal from '@/components/case/CreateCaseModal.vue';
-import type { DashboardStats } from '@/api/stats';
+
+// Определение типа для статистики
+interface DashboardStats {
+  players?: {
+    total: number;
+  },
+  cases?: {
+    total: number;
+    open: number;
+    in_progress: number;
+    closed: number;
+    resolved: number;
+    activeCases?: number;
+  },
+  weeklyActions?: number;
+}
+
+// Расширенный интерфейс для ответа API кейсов
+interface CaseResponse {
+  id: string;
+  title: string;
+  status: string;
+  player_name?: string;
+  player_id?: string;
+  player?: {
+    id: string;
+    full_name: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
 
 interface Case {
   id: string;
@@ -147,17 +156,21 @@ interface Activity {
   id: string;
   description: string;
   created_at: string;
+  timestamp?: string;
+  user?: string;
 }
 
 const router = useRouter();
 const authStore = useAuthStore();
+const searchApi = useSearchApi();
 const loading = ref(true);
 const showCreateCaseModal = ref(false);
 
 // Статистика
 const stats = ref<DashboardStats>({
   players: { total: 0 },
-  cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0 }
+  cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0, activeCases: 0 },
+  weeklyActions: 0
 });
 
 // Последние кейсы
@@ -165,6 +178,11 @@ const recentCases = ref<Case[]>([]);
 
 // Активности
 const activities = ref<Activity[]>([]);
+
+// Вспомогательные вычисляемые свойства
+const isAdmin = computed(() => {
+  return authStore.user && authStore.user.role === 'admin';
+});
 
 // Обработчики событий
 const handleSearchResultSelect = (result: any) => {
@@ -186,13 +204,19 @@ const handleCaseCreated = (newCase: Case) => {
   }
   
   // Обновляем статистику
-  stats.value.cases.total++;
+  if (stats.value.cases) {
+    stats.value.cases.total++;
+    if (stats.value.cases.activeCases !== undefined) {
+      stats.value.cases.activeCases++;
+    }
+  }
   
   // Добавляем активность
   activities.value.unshift({
     id: Date.now().toString(),
     description: `Создан новый кейс: ${newCase.title}`,
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    user: authStore.user?.username || 'Пользователь'
   });
   if (activities.value.length > 5) {
     activities.value.pop();
@@ -241,9 +265,57 @@ onMounted(async () => {
     try {
       const statsApi = await import('@/api/stats').then(m => m.useStatsApi());
       const dashboardStats = await statsApi.getDashboardStats('global');
+      console.log('Получены данные статистики:', dashboardStats);
       
       // Обновляем статистику с учетом возможных undefined полей
-      stats.value = dashboardStats;
+      // Создаем новый объект вместо прямого присваивания
+      const statsData: DashboardStats = { 
+        players: { total: 0 },
+        cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0, activeCases: 0 },
+        weeklyActions: 0
+      };
+      
+      // Копируем данные из ответа API, если они есть
+      if (dashboardStats) {
+        // Безопасное копирование данных игроков
+        if (dashboardStats.players && typeof dashboardStats.players === 'object') {
+          if (typeof dashboardStats.players.total === 'number') {
+            statsData.players!.total = dashboardStats.players.total;
+          }
+        }
+        
+        // Безопасное копирование данных кейсов
+        if (dashboardStats.cases && typeof dashboardStats.cases === 'object') {
+          if (typeof dashboardStats.cases.total === 'number') {
+            statsData.cases!.total = dashboardStats.cases.total;
+          }
+          if (typeof dashboardStats.cases.open === 'number') {
+            statsData.cases!.open = dashboardStats.cases.open;
+          }
+          if (typeof dashboardStats.cases.in_progress === 'number') {
+            statsData.cases!.in_progress = dashboardStats.cases.in_progress;
+          }
+          if (typeof dashboardStats.cases.closed === 'number') {
+            statsData.cases!.closed = dashboardStats.cases.closed;
+          }
+          if (typeof dashboardStats.cases.resolved === 'number') {
+            statsData.cases!.resolved = dashboardStats.cases.resolved;
+          }
+          
+          // Рассчитываем активные кейсы как сумму открытых и в прогрессе
+          statsData.cases!.activeCases = statsData.cases!.open + statsData.cases!.in_progress;
+        }
+        
+        // Безопасное копирование количества действий за неделю
+        if ('weeklyActions' in dashboardStats && 
+            typeof (dashboardStats as any).weeklyActions === 'number') {
+          statsData.weeklyActions = (dashboardStats as any).weeklyActions;
+        }
+      }
+      
+      // Присваиваем созданный объект
+      stats.value = statsData;
+      
     } catch (error) {
       console.error('Ошибка при загрузке статистики:', error);
       // Статистика останется по умолчанию
@@ -260,36 +332,59 @@ onMounted(async () => {
       // Проверяем формат ответа API
       if (response && response.results && Array.isArray(response.results)) {
         // Получаем массив кейсов из response.results
-        const accessibleCases = response.results;
+        const accessibleCases = response.results as CaseResponse[];
         
         // Обрабатываем данные
         recentCases.value = accessibleCases.map(caseItem => ({
-          id: caseItem.id,
-          title: caseItem.title,
-          status: caseItem.status,
+          id: caseItem.id || '',
+          title: caseItem.title || 'Без названия',
+          status: caseItem.status || 'unknown',
           player_name: caseItem.player_name || (caseItem.player ? caseItem.player.full_name : ''),
           created_at: caseItem.created_at
         }));
         
         // Если статистика не была загружена через специализированный API,
         // используем запасной вариант на основе кейсов
-        if (stats.value.cases.total === 0 && stats.value.cases.open === 0 &&
-            stats.value.cases.in_progress === 0 && stats.value.cases.closed === 0) {
+        if (stats.value.cases && (
+            !stats.value.cases.total || 
+            !stats.value.cases.open ||
+            !stats.value.cases.in_progress || 
+            !stats.value.cases.closed)) {
           try {
             // Запрашиваем только количество кейсов без данных
             const activeCases = await casesApi.getAccessibleCases({ status: 'open,in_progress', limit: 0 });
             const closedCases = await casesApi.getAccessibleCases({ status: 'closed,resolved', limit: 0 });
             
-            stats.value.cases.open = (activeCases.count || 0) > 0 ? 
-              activeCases.count : accessibleCases.filter(c => c.status === 'open').length;
-            
-            stats.value.cases.in_progress = accessibleCases.filter(c => c.status === 'in_progress').length;
-            stats.value.cases.closed = (closedCases.count || 0) > 0 ? 
-              closedCases.count : accessibleCases.filter(c => c.status === 'closed').length;
-            
-            stats.value.cases.total = (stats.value.cases.open || 0) + 
-                                   (stats.value.cases.in_progress || 0) + 
-                                   (stats.value.cases.closed || 0);
+            // Обновляем статистику, если есть данные из API
+            if (stats.value.cases) {
+              if (activeCases && typeof activeCases.count === 'number') {
+                stats.value.cases.open = Math.max(
+                  stats.value.cases.open,
+                  accessibleCases.filter(c => c.status === 'open').length
+                );
+              }
+              
+              stats.value.cases.in_progress = Math.max(
+                stats.value.cases.in_progress,
+                accessibleCases.filter(c => c.status === 'in_progress').length
+              );
+              
+              if (closedCases && typeof closedCases.count === 'number') {
+                stats.value.cases.closed = Math.max(
+                  stats.value.cases.closed,
+                  accessibleCases.filter(c => c.status === 'closed').length
+                );
+              }
+              
+              // Пересчитываем общее количество кейсов
+              stats.value.cases.total = stats.value.cases.open + 
+                                  stats.value.cases.in_progress + 
+                                  stats.value.cases.closed +
+                                  stats.value.cases.resolved;
+              
+              // Обновляем активные кейсы
+              stats.value.cases.activeCases = stats.value.cases.open + stats.value.cases.in_progress;
+            }
           } catch (error) {
             console.error('Ошибка при загрузке статистики кейсов:', error);
           }
@@ -304,18 +399,20 @@ onMounted(async () => {
     }
     
     // Если статистика игроков не была загружена через специализированный API
-    if (stats.value.players.total === 0) {
+    if (stats.value.players && !stats.value.players.total) {
       try {
         const playersApi = await import('@/api/players').then(m => m.usePlayersApi());
         const playerStats = await playersApi.getPlayersCount();
         
         // Обновляем статистику
-        stats.value.players.total = playerStats.count || 0;
+        if (stats.value.players) {
+          stats.value.players.total = playerStats && playerStats.count || 0;
         
-        // Если не получили статистику, загружаем все игроки и считаем
-        if (stats.value.players.total === 0) {
-          const allPlayers = await playersApi.getPlayers();
-          stats.value.players.total = allPlayers.length || 0;
+          // Если не получили статистику, загружаем все игроки и считаем
+          if (stats.value.players.total === 0) {
+            const allPlayers = await playersApi.getPlayers();
+            stats.value.players.total = allPlayers && Array.isArray(allPlayers) ? allPlayers.length : 0;
+          }
         }
       } catch (error) {
         console.error('Ошибка при загрузке статистики игроков:', error);
@@ -330,12 +427,18 @@ onMounted(async () => {
       try {
         const response = await auditApi.getRecentActivity(5);
         
-        if (Array.isArray(response)) {
+        if (response && Array.isArray(response)) {
           activities.value = response.map(activity => ({
             id: activity.id || String(Date.now()),
             description: activity.description || activity.action || 'Неизвестное действие',
-            created_at: activity.created_at || new Date().toISOString()
+            created_at: activity.created_at || new Date().toISOString(),
+            user: activity.user_name || 'Система'
           }));
+          
+          // Обновляем количество действий за неделю, если оно не установлено
+          if (!stats.value.weeklyActions && activities.value.length > 0) {
+            stats.value.weeklyActions = activities.value.length;
+          }
         } else {
           console.warn('API аудита вернул данные в неожиданном формате, использую резервные данные');
           generateFallbackActivities();
@@ -354,7 +457,11 @@ onMounted(async () => {
     // Сбрасываем значения в случае ошибки
     recentCases.value = [];
     activities.value = [];
-    stats.value = { players: { total: 0 }, cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0 } };
+    stats.value = { 
+      players: { total: 0 },
+      cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0, activeCases: 0 },
+      weeklyActions: 0
+    };
   } finally {
     loading.value = false;
   }
@@ -362,8 +469,11 @@ onMounted(async () => {
 
 // Добавим функцию для генерации активностей из имеющихся данных
 function generateFallbackActivities() {
+  // Инициализируем пустой массив на случай, если recentCases.value не определен
+  activities.value = [];
+  
   // Используем последние кейсы для генерации активностей
-  if (recentCases.value.length > 0) {
+  if (recentCases.value && recentCases.value.length > 0) {
     activities.value = recentCases.value.slice(0, 5).map((caseItem, index) => {
       // Создаем разные типы активностей с разными датами
       const activityDate = new Date();
@@ -381,9 +491,15 @@ function generateFallbackActivities() {
       return {
         id: `activity-${caseItem.id}-${index}`,
         description: activityTypes[index % activityTypes.length],
-        created_at: activityDate.toISOString()
+        created_at: activityDate.toISOString(),
+        user: 'Система'
       };
     });
+    
+    // Если обновили активности, обновим и статистику
+    if (activities.value.length > 0 && !stats.value.weeklyActions) {
+      stats.value.weeklyActions = activities.value.length;
+    }
   } else {
     // Если нет кейсов, создаем базовые активности
     const now = new Date();
@@ -391,19 +507,43 @@ function generateFallbackActivities() {
       {
         id: 'system-activity-1',
         description: 'Система инициализирована',
-        created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() // 1 день назад
+        created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 день назад
+        user: 'Система'
       },
       {
         id: 'system-activity-2',
         description: 'Выполнено обновление системы',
-        created_at: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString() // 12 часов назад
+        created_at: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(), // 12 часов назад
+        user: 'Система'
       },
       {
         id: 'system-activity-3',
         description: 'Выполнено ежедневное обслуживание',
-        created_at: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString() // 6 часов назад
+        created_at: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), // 6 часов назад
+        user: 'Система'
       }
     ];
+    
+    // Обновляем статистику действий за неделю
+    if (!stats.value.weeklyActions) {
+      stats.value.weeklyActions = activities.value.length;
+    }
+  }
+}
+
+// Форматирование даты и времени
+function formatDateTime(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return dateString;
   }
 }
 </script>

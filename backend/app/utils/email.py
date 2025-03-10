@@ -90,4 +90,24 @@ def send_reset_password_email(email_to: str, token: str) -> None:
         subject=subject,
         template_str="reset_password.html",
         template_data=template_data,
+    )
+
+
+def send_new_account_email(email_to: str, username: str, password: str) -> None:
+    """Send new account email with login credentials."""
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Новый аккаунт создан"
+    
+    template_data = {
+        "project_name": project_name,
+        "username": username,
+        "email": email_to,
+        "password": password,
+    }
+    
+    send_email(
+        email_to=email_to,
+        subject=subject,
+        template_str="new_account.html",
+        template_data=template_data,
     ) 

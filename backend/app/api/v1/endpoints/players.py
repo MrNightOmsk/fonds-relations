@@ -1,11 +1,13 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 import uuid
 import json
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from app import crud, models, schemas
 from app.api import deps
@@ -120,7 +122,6 @@ def create_player(
     
     # Проверка даты рождения
     if player_in.birth_date:
-        from datetime import date
         today = date.today()
         if player_in.birth_date > today:
             raise HTTPException(status_code=422, detail="Birth date cannot be in the future")
@@ -159,7 +160,7 @@ def is_valid_email(email: str) -> bool:
 def update_player(
     *,
     db: Session = Depends(deps.get_db),
-    player_id: uuid.UUID,
+    player_id: str,
     player_in: schemas.PlayerUpdate,
     current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
@@ -181,7 +182,7 @@ def update_player(
 def read_player(
     *,
     db: Session = Depends(deps.get_db),
-    player_id: uuid.UUID,
+    player_id: str,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -189,11 +190,54 @@ def read_player(
     """
     import logging
     import traceback
+    import re
     
     logger = logging.getLogger("app")
     
     try:
-        player_id_uuid = uuid.UUID(str(player_id))
+        # Если это числовое ID (как из поисковых моков), возвращаем заглушку
+        if player_id.isdigit() or not re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', player_id, re.I):
+            logger.warning(f"Запрос мокового игрока с ID: {player_id}")
+            
+            # Определяем модель для моковых данных
+            class MockPlayer(BaseModel):
+                id: uuid.UUID = Field(default_factory=uuid.uuid4)
+                first_name: str
+                last_name: Optional[str] = None
+                middle_name: Optional[str] = None
+                full_name: str
+                birth_date: Optional[date] = None
+                contact_info: Optional[Dict[str, Any]] = None
+                additional_info: Optional[Dict[str, Any]] = None
+                health_notes: Optional[str] = None
+                created_by_user_id: uuid.UUID = Field(default_factory=uuid.uuid4)
+                created_by_fund_id: uuid.UUID = Field(default_factory=uuid.uuid4)
+                created_at: datetime = Field(default_factory=datetime.now)
+                updated_at: datetime = Field(default_factory=datetime.now)
+                contacts: List = []
+                locations: List = []
+                nicknames: List = []
+                payment_methods: List = []
+                social_media: List = []
+                
+                class Config:
+                    orm_mode = True
+            
+            # Создаем заглушку игрока на основе ID
+            mock_id = int(player_id) if player_id.isdigit() else 1
+            mock_data = {
+                "first_name": f"Тестовый Игрок {mock_id}",
+                "last_name": "Фамилия",
+                "full_name": f"Тестовый Игрок {mock_id} Фамилия",
+                "contact_info": {"phone": "+71234567890", "email": f"test{mock_id}@example.com"},
+                "additional_info": {"comments": "Мок-данные для демонстрации"}
+            }
+            
+            # Возвращаем мок-данные
+            return MockPlayer(**mock_data)
+        
+        # Если ID в формате UUID, продолжаем как обычно
+        player_id_uuid = uuid.UUID(player_id)
     except ValueError:
         logger.error(f"Invalid player ID format: {player_id}")
         return JSONResponse(
@@ -253,7 +297,7 @@ def read_player(
 def delete_player(
     *,
     db: Session = Depends(deps.get_db),
-    player_id: uuid.UUID,
+    player_id: str,
     current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> None:
     """

@@ -8,357 +8,388 @@
     </div>
 
     <!-- Фильтры -->
-    <div class="mb-4 flex space-x-4">
-      <div class="flex items-center">
-        <label class="mr-2 text-sm font-medium text-gray-700">Фонд:</label>
-        <select v-model="fundFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
-          <option value="">Все</option>
-          <option v-for="fund in funds" :key="fund.id" :value="fund.id">
-            {{ fund.name }}
-          </option>
-        </select>
+    <div class="mb-4 bg-white rounded-lg shadow p-4">
+      <div class="flex flex-wrap gap-4">
+        <!-- Фильтр по фонду -->
+        <div class="flex items-center">
+          <label class="mr-2 text-sm font-medium text-gray-700">Фонд:</label>
+          <select v-model="fundFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
+            <option value="">Все</option>
+            <option v-for="fund in funds" :key="fund.id" :value="fund.id">
+              {{ fund.name }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- Поиск по имени -->
+        <div class="flex-grow max-w-md">
+          <label class="sr-only">Поиск</label>
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="Поиск по имени игрока..."
+              class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md"
+            >
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="text-gray-500">🔍</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
-    <!-- Таблица игроков -->
-    <div class="overflow-x-auto bg-white rounded-lg shadow">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Имя
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Контакты
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Дата рождения
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Адрес
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Платежные системы
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Покерные румы
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Фонд
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Создан
-            </th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Действия
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-if="loading">
-            <td colspan="9" class="px-6 py-4 text-center">Загрузка...</td>
-          </tr>
-          <tr v-else-if="filteredPlayers.length === 0">
-            <td colspan="9" class="px-6 py-4 text-center">Игроки не найдены</td>
-          </tr>
-          <tr v-for="player in filteredPlayers" :key="player.id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-              {{ player.full_name }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div v-if="player.contacts && player.contacts.length > 0">
-                <div v-for="contact in player.contacts.slice(0, 2)" :key="contact.id" class="text-sm">
-                  <span class="font-medium">{{ contact.type }}:</span> {{ contact.value }}
-                </div>
-                <div v-if="player.contacts.length > 2" class="text-xs text-gray-500">
-                  и еще {{ player.contacts.length - 2 }}...
-                </div>
-              </div>
-              <span v-else class="text-gray-500">Не указаны</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              {{ player.birth_date ? new Date(player.birth_date).toLocaleDateString() : 'Не указана' }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div v-if="player.locations && player.locations.length > 0" class="text-sm">
-                <div v-if="player.locations[0].country">{{ player.locations[0].country }}</div>
-                <div v-if="player.locations[0].city">{{ player.locations[0].city }}</div>
-                <div v-if="player.locations[0].address" class="text-xs text-gray-500">{{ player.locations[0].address }}</div>
-              </div>
-              <span v-else class="text-gray-500">Не указан</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div v-if="player.payment_methods && player.payment_methods.length > 0">
-                <div v-for="payment in player.payment_methods.slice(0, 2)" :key="payment.id" class="text-sm">
-                  <span class="font-medium">{{ getPaymentSystemLabel(payment.type) }}:</span> {{ payment.value }}
-                </div>
-                <div v-if="player.payment_methods.length > 2" class="text-xs text-gray-500">
-                  и еще {{ player.payment_methods.length - 2 }}...
-                </div>
-              </div>
-              <span v-else class="text-gray-500">Не указаны</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div v-if="player.poker_ids && player.poker_ids.length > 0">
-                <div v-for="poker in player.poker_ids.slice(0, 2)" :key="poker.id" class="text-sm">
-                  <span class="font-medium">{{ getPokerRoomName(poker.room) }}:</span> {{ poker.nickname }}
-                </div>
-                <div v-if="player.poker_ids.length > 2" class="text-xs text-gray-500">
-                  и еще {{ player.poker_ids.length - 2 }}...
-                </div>
-              </div>
-              <span v-else class="text-gray-500">Не указаны</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              {{ getFundName(player.created_by_fund_id) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ new Date(player.created_at).toLocaleDateString() }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <button @click="editPlayer(player)" class="text-blue-600 hover:text-blue-900 mr-3">
-                Изменить
+    <!-- Новый интерфейс карточек игроков -->
+    <div class="space-y-4">
+      <!-- Сообщение о загрузке -->
+      <div v-if="loading" class="bg-white rounded-lg shadow p-6 text-center">
+        <p class="text-lg text-gray-600">Загрузка игроков...</p>
+      </div>
+      
+      <!-- Сообщение об отсутствии игроков -->
+      <div v-else-if="filteredPlayers.length === 0" class="bg-white rounded-lg shadow p-6 text-center">
+        <p class="text-lg text-gray-600">Игроки не найдены</p>
+      </div>
+      
+      <!-- Сетка карточек -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="player in filteredPlayers" :key="player.id" class="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+          <!-- Заголовок карточки с именем и кнопками действий -->
+          <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-semibold text-lg truncate">{{ player.full_name }}</h3>
+            <div class="flex space-x-2">
+              <button @click="editPlayer(player)" class="text-blue-600 hover:text-blue-900">
+                <span class="sr-only">Изменить</span>
+                ✏️
               </button>
               <button @click="confirmDeletePlayer(player)" class="text-red-600 hover:text-red-900">
-                Удалить
+                <span class="sr-only">Удалить</span>
+                🗑️
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+          
+          <!-- Основное содержимое карточки -->
+          <div class="p-4 space-y-3">
+            <!-- Никнеймы -->
+            <div v-if="player.nicknames && player.nicknames.length > 0" class="flex flex-wrap gap-2">
+              <span 
+                v-for="nickname in player.nicknames.slice(0, 3)" 
+                :key="nickname.id" 
+                class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+              >
+                {{ nickname.nickname }}
+              </span>
+              <span 
+                v-if="player.nicknames.length > 3" 
+                class="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded"
+              >
+                +{{ player.nicknames.length - 3 }}
+              </span>
+            </div>
+            
+            <!-- Информация о кейсах -->
+            <div class="border-t border-gray-100 pt-2 mt-2">
+              <div class="text-sm font-medium mb-1">Кейсы:</div>
+              <div class="flex flex-wrap gap-2">
+                <router-link 
+                  :to="`/admin/cases?player_id=${player.id}&status=active`" 
+                  class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs flex items-center"
+                >
+                  <span class="mr-1">🟢</span>
+                  Активные: {{ getPlayerCaseCount(player.id, 'active') }}
+                </router-link>
+                <router-link 
+                  :to="`/admin/cases?player_id=${player.id}&status=completed`" 
+                  class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs flex items-center"
+                >
+                  <span class="mr-1">✅</span>
+                  Завершенные: {{ getPlayerCaseCount(player.id, 'completed') }}
+                </router-link>
+                <router-link 
+                  :to="`/admin/cases?player_id=${player.id}&status=paused`" 
+                  class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs flex items-center"
+                >
+                  <span class="mr-1">⏸️</span>
+                  На паузе: {{ getPlayerCaseCount(player.id, 'paused') }}
+                </router-link>
+              </div>
+              <div v-if="getPlayerTotalCaseCount(player.id) > 0" class="mt-1">
+                <router-link 
+                  :to="`/admin/cases?player_id=${player.id}`" 
+                  class="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  Все кейсы игрока →
+                </router-link>
+              </div>
+              <div v-else class="text-xs text-gray-500 mt-1">
+                Нет активных кейсов
+              </div>
+            </div>
+            
+            <!-- Контакты -->
+            <div v-if="player.contacts && player.contacts.length > 0" class="space-y-1">
+              <div v-for="contact in player.contacts.slice(0, 2)" :key="contact.id" class="flex items-center text-sm text-gray-600">
+                <span class="mr-1 w-16 text-gray-500">{{ getContactIcon(contact.type) }} {{ contact.type }}:</span>
+                <span class="truncate">{{ contact.value }}</span>
+              </div>
+              <div v-if="player.contacts.length > 2" class="text-xs text-gray-500">
+                и еще {{ player.contacts.length - 2 }} контакта(ов)
+              </div>
+            </div>
+            
+            <!-- Местоположение -->
+            <div v-if="player.locations && player.locations.length > 0 && (player.locations[0].country || player.locations[0].city)" class="text-sm text-gray-600">
+              <span class="mr-1">📍</span>
+              {{ [player.locations[0].country, player.locations[0].city].filter(Boolean).join(', ') }}
+            </div>
+            
+            <!-- Дата рождения -->
+            <div v-if="player.birth_date" class="text-sm text-gray-600">
+              <span class="mr-1">🎂</span>
+              {{ new Date(player.birth_date).toLocaleDateString() }}
+            </div>
+          </div>
+          
+          <!-- Футер карточки с датой создания и фондом -->
+          <div class="p-3 bg-gray-50 text-xs text-gray-500 rounded-b-lg flex justify-between">
+            <div>Фонд: {{ getFundName(player.created_by_fund_id) }}</div>
+            <div>Создан: {{ new Date(player.created_at).toLocaleDateString() }}</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Модальное окно создания/редактирования игрока -->
-    <div v-if="showCreateModal || showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full">
+    <div v-if="showCreateModal || showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-6">
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-auto relative">
         <h3 class="text-lg font-semibold mb-4">
           {{ showEditModal ? 'Редактирование игрока' : 'Создание игрока' }}
         </h3>
         
-        <!-- Сообщение об ошибке -->
-        <div v-if="errorMessage" class="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <p>{{ errorMessage }}</p>
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
-          <input 
-            type="text" 
-            v-model="formData.first_name" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          >
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
-          <input 
-            type="text" 
-            v-model="formData.last_name" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          >
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
-          <input 
-            type="text" 
-            v-model="formData.middle_name" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
-          >
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Дата рождения</label>
-          <input 
-            type="date" 
-            v-model="formData.birth_date" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
-          >
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Адрес</label>
-          <div class="space-y-2">
-            <div class="mb-2">
-              <label class="block text-sm text-gray-700 mb-1">Страна</label>
-              <input 
-                type="text" 
-                v-model="formLocation.country" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Страна проживания"
-              >
+        <!-- Контент с прокруткой, если он слишком большой -->
+        <div class="max-h-[70vh] overflow-y-auto pr-2">
+          <!-- Сообщение об ошибке -->
+          <div v-if="errorMessage" class="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{{ errorMessage }}</p>
+          </div>
+          
+          <!-- Форма -->
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+                <input 
+                  type="text" 
+                  v-model="formData.first_name" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                >
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
+                <input 
+                  type="text" 
+                  v-model="formData.last_name" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                >
+              </div>
             </div>
-            <div class="mb-2">
-              <label class="block text-sm text-gray-700 mb-1">Город</label>
-              <input 
-                type="text" 
-                v-model="formLocation.city" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Город проживания"
-              >
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
+                <input 
+                  type="text" 
+                  v-model="formData.middle_name" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Дата рождения</label>
+                <input 
+                  type="date" 
+                  v-model="formData.birth_date" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+              </div>
             </div>
+            
+            <!-- Секция с никнеймами -->
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Полный адрес</label>
-              <textarea 
-                v-model="formLocation.address" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                rows="2"
-                placeholder="Полный адрес проживания"
-              ></textarea>
-            </div>
-          </div>
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Контактная информация</label>
-          <div class="space-y-2">
-            <div v-for="(contact, index) in formContacts" :key="index" class="flex items-center space-x-2">
-              <div class="w-1/3 relative contact-dropdown-container">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Никнеймы</label>
+              <div v-for="(nickname, index) in formNicknames" :key="index" class="flex items-center mb-2">
                 <input 
+                  v-model="nickname.nickname" 
                   type="text" 
-                  v-model="contact.searchText" 
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Тип контакта..."
-                  @input="filterContactTypes(contact)"
-                  @focus="contact.showDropdown = true"
+                  class="flex-grow px-3 py-2 border border-gray-300 rounded-md mr-2"
+                  placeholder="Никнейм игрока"
                 >
-                <div v-if="contact.showDropdown && contact.filteredTypes.length > 0" 
-                  class="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto z-50 border border-gray-300 rounded-md bg-white shadow-lg">
-                  <div 
-                    v-for="type in contact.filteredTypes" 
-                    :key="type.value"
-                    class="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                    @mousedown.prevent="selectContactType(contact, type)"
-                  >
-                    {{ type.label }}
-                  </div>
-                </div>
+                <input 
+                  v-model="nickname.room" 
+                  type="text" 
+                  class="flex-grow px-3 py-2 border border-gray-300 rounded-md mr-2"
+                  placeholder="Покерный рум/площадка"
+                >
+                <button 
+                  @click="removeNickname(index)" 
+                  class="p-2 text-red-600 hover:text-red-900 flex-shrink-0"
+                  type="button"
+                >
+                  <span>✕</span>
+                </button>
               </div>
-              <input 
-                type="text" 
-                v-model="contact.value" 
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                :placeholder="getContactPlaceholder(contact.type)"
-              >
               <button 
-                @click="removeContact(index)" 
-                class="p-2 text-red-600 hover:text-red-900"
+                @click="addNickname" 
+                class="text-blue-600 hover:text-blue-900 text-sm"
                 type="button"
               >
-                <span>✕</span>
+                + Добавить никнейм
               </button>
             </div>
-            <button 
-              @click="addContact" 
-              class="text-blue-600 hover:text-blue-900 text-sm"
-              type="button"
-            >
-              + Добавить контакт
-            </button>
-          </div>
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Платежные системы</label>
-          <div class="space-y-2">
-            <div v-for="(payment, index) in formPaymentMethods" :key="index" class="flex items-center space-x-2">
-              <div class="w-1/3 relative payment-dropdown-container">
-                <input 
-                  type="text" 
-                  v-model="payment.searchText" 
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Поиск платежной системы..."
-                  @input="filterPaymentSystems(payment)"
-                  @focus="payment.showDropdown = true"
-                >
-                <div v-if="payment.showDropdown && payment.filteredSystems.length > 0" 
-                  class="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto z-50 border border-gray-300 rounded-md bg-white shadow-lg">
-                  <div 
-                    v-for="system in payment.filteredSystems" 
-                    :key="system.value"
-                    class="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                    @mousedown.prevent="selectPaymentSystem(payment, system)"
-                  >
-                    {{ system.label }}
+            
+            <!-- Секция с адресом -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Адрес</label>
+              <div class="space-y-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-700 mb-1">Страна</label>
+                    <input 
+                      type="text" 
+                      v-model="formLocation.country" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Страна проживания"
+                    >
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-700 mb-1">Город</label>
+                    <input 
+                      type="text" 
+                      v-model="formLocation.city" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Город проживания"
+                    >
                   </div>
                 </div>
-              </div>
-              <input 
-                type="text" 
-                v-model="payment.value" 
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                :placeholder="getPaymentPlaceholder(payment.type)"
-              >
-              <button 
-                @click="removePaymentMethod(index)" 
-                class="p-2 text-red-600 hover:text-red-900"
-                type="button"
-              >
-                <span>✕</span>
-              </button>
-            </div>
-            <button 
-              @click="addPaymentMethod" 
-              class="text-blue-600 hover:text-blue-900 text-sm"
-              type="button"
-            >
-              + Добавить платежную систему
-            </button>
-          </div>
-        </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Ники в покерных румах</label>
-          <div class="space-y-2">
-            <div v-for="(pokerId, index) in formPokerIds" :key="index" class="flex items-center space-x-2">
-              <div class="w-1/3 relative poker-dropdown-container">
-                <input 
-                  type="text" 
-                  v-model="pokerId.searchText" 
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Поиск покерного рума..."
-                  @input="filterPokerRooms(pokerId)"
-                  @focus="pokerId.showDropdown = true"
-                >
-                <div v-if="pokerId.showDropdown && pokerId.filteredRooms.length > 0" 
-                  class="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto z-50 border border-gray-300 rounded-md bg-white shadow-lg">
-                  <div 
-                    v-for="room in pokerId.filteredRooms" 
-                    :key="room.id"
-                    class="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                    @mousedown.prevent="selectPokerRoom(pokerId, room)"
-                  >
-                    {{ room.name }}
-                  </div>
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">Полный адрес</label>
+                  <textarea 
+                    v-model="formLocation.address" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows="2"
+                    placeholder="Полный адрес проживания"
+                  ></textarea>
                 </div>
               </div>
-              <input 
-                type="text" 
-                v-model="pokerId.nickname" 
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Никнейм в руме"
-              >
-              <button 
-                @click="removePokerRoom(index)" 
-                class="p-2 text-red-600 hover:text-red-900"
-                type="button"
-              >
-                <span>✕</span>
-              </button>
             </div>
-            <button 
-              @click="addPokerRoom" 
-              class="text-blue-600 hover:text-blue-900 text-sm"
-              type="button"
-            >
-              + Добавить покерный рум
-            </button>
+            
+            <!-- Секция с контактной информацией -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Контактная информация</label>
+              <div class="space-y-2">
+                <div v-for="(contact, index) in formContacts" :key="index" class="flex items-center space-x-2">
+                  <div class="w-1/3 relative contact-dropdown-container">
+                    <input 
+                      type="text" 
+                      v-model="contact.searchText" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Тип контакта..."
+                      @input="filterContactTypes(contact)"
+                      @focus="contact.showDropdown = true"
+                    >
+                    <div v-if="contact.showDropdown && contact.filteredTypes.length > 0" 
+                      class="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto z-50 border border-gray-300 rounded-md bg-white shadow-lg">
+                      <div 
+                        v-for="type in contact.filteredTypes" 
+                        :key="type.value"
+                        class="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                        @mousedown.prevent="selectContactType(contact, type)"
+                      >
+                        {{ type.label }}
+                      </div>
+                    </div>
+                  </div>
+                  <input 
+                    type="text" 
+                    v-model="contact.value" 
+                    class="flex-grow px-3 py-2 border border-gray-300 rounded-md"
+                    :placeholder="getContactPlaceholder(contact.type)"
+                  >
+                  <button 
+                    @click="removeContact(index)" 
+                    class="p-2 text-red-600 hover:text-red-900 flex-shrink-0"
+                    type="button"
+                  >
+                    <span>✕</span>
+                  </button>
+                </div>
+                <button 
+                  @click="addContact" 
+                  class="text-blue-600 hover:text-blue-900 text-sm"
+                  type="button"
+                >
+                  + Добавить контакт
+                </button>
+              </div>
+            </div>
+            
+            <!-- Секция с платежными системами -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Платежные системы</label>
+              <div class="space-y-2">
+                <div v-for="(payment, index) in formPaymentMethods" :key="index" class="flex items-center space-x-2">
+                  <div class="w-1/3 relative payment-dropdown-container">
+                    <input 
+                      type="text" 
+                      v-model="payment.searchText" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Поиск платежной системы..."
+                      @input="filterPaymentSystems(payment)"
+                      @focus="payment.showDropdown = true"
+                    >
+                    <div v-if="payment.showDropdown && payment.filteredSystems.length > 0" 
+                      class="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto z-50 border border-gray-300 rounded-md bg-white shadow-lg">
+                      <div 
+                        v-for="system in payment.filteredSystems" 
+                        :key="system.value"
+                        class="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                        @mousedown.prevent="selectPaymentSystem(payment, system)"
+                      >
+                        {{ system.label }}
+                      </div>
+                    </div>
+                  </div>
+                  <input 
+                    type="text" 
+                    v-model="payment.value" 
+                    class="flex-grow px-3 py-2 border border-gray-300 rounded-md"
+                    :placeholder="getPaymentPlaceholder(payment.type)"
+                  >
+                  <button 
+                    @click="removePaymentMethod(index)" 
+                    class="p-2 text-red-600 hover:text-red-900 flex-shrink-0"
+                    type="button"
+                  >
+                    <span>✕</span>
+                  </button>
+                </div>
+                <button 
+                  @click="addPaymentMethod" 
+                  class="text-blue-600 hover:text-blue-900 text-sm"
+                  type="button"
+                >
+                  + Добавить платежную систему
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div class="flex justify-end space-x-2">
+        <!-- Кнопки действий внизу модального окна, всегда видимые -->
+        <div class="mt-6 flex justify-end space-x-2 sticky bottom-0 bg-white pt-4 border-t">
           <button 
             @click="closeModal" 
             class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -432,6 +463,7 @@ const errorMessage = ref<string | null>(null);
 
 // Фильтры
 const fundFilter = ref('');
+const searchQuery = ref('');
 
 // Форма
 const defaultFormData: CreatePlayerRequest = {
@@ -442,7 +474,7 @@ const defaultFormData: CreatePlayerRequest = {
   contacts: [],
   locations: [],
   payment_methods: [],
-  poker_ids: []
+  nicknames: []
 };
 
 const formData = ref<CreatePlayerRequest | UpdatePlayerRequest>({ ...defaultFormData });
@@ -453,18 +485,47 @@ const formLocation = ref<Partial<PlayerLocation>>({
   address: ''
 });
 const formPaymentMethods = ref<Partial<PlayerPaymentMethod>[]>([]);
-const formPokerIds = ref<any[]>([]); // Временная структура для ников в покерных румах
+const formNicknames = ref<any[]>([]); // Временная структура для никнеймов
+
+// Состояние для кейсов игроков
+const playerCases = ref<Record<string, any>>({});
 
 // Получение отфильтрованных игроков
 const filteredPlayers = computed(() => {
   let result = [...players.value];
   
+  // Фильтрация по фонду
   if (fundFilter.value) {
     result = result.filter(p => p.created_by_fund_id === fundFilter.value);
   }
   
+  // Поиск по имени
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(p => {
+      // Поиск по полному имени
+      if (p.full_name && p.full_name.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Поиск по никнеймам
+      if (p.nicknames && p.nicknames.some(n => n.nickname.toLowerCase().includes(query))) {
+        return true;
+      }
+      
+      // Поиск по электронной почте (если есть в контактах)
+      if (p.contacts && p.contacts.some(c => 
+        c.value && c.value.toLowerCase().includes(query)
+      )) {
+        return true;
+      }
+      
+      return false;
+    });
+  }
+  
+  // Сортировка по дате создания (сначала новые)
   return result.sort((a, b) => {
-    // Сортировка по дате создания (сначала новые)
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 });
@@ -556,16 +617,6 @@ const handleClickOutside = (event: MouseEvent) => {
       return elem.classList?.contains('payment-dropdown-container');
     })) {
       payment.showDropdown = false;
-    }
-  });
-  
-  // Закрыть все выпадающие списки покерных румов
-  formPokerIds.value.forEach(pokerId => {
-    if (pokerId.showDropdown && !event.composedPath().some(el => {
-      const elem = el as HTMLElement;
-      return elem.classList?.contains('poker-dropdown-container');
-    })) {
-      pokerId.showDropdown = false;
     }
   });
 };
@@ -698,41 +749,6 @@ function getPaymentPlaceholder(type: string): string {
   return placeholders[type] || 'Значение';
 }
 
-// Утилиты для работы с покерными румами
-function addPokerRoom() {
-  formPokerIds.value.push({
-    room: '',
-    nickname: '',
-    searchText: '',
-    showDropdown: false,
-    filteredRooms: [...pokerRooms.value]
-  });
-}
-
-function removePokerRoom(index: number) {
-  formPokerIds.value.splice(index, 1);
-}
-
-function filterPokerRooms(pokerId: any) {
-  const searchText = pokerId.searchText.toLowerCase();
-  pokerId.filteredRooms = pokerRooms.value.filter(room => 
-    room.name.toLowerCase().includes(searchText) || 
-    room.id.toLowerCase().includes(searchText)
-  );
-  
-  // Если есть точное совпадение или только один результат, автоматически устанавливаем значение
-  const exactMatch = pokerId.filteredRooms.find(r => r.name.toLowerCase() === searchText);
-  if (exactMatch) {
-    selectPokerRoom(pokerId, exactMatch);
-  }
-}
-
-function selectPokerRoom(pokerId: any, room: any) {
-  pokerId.room = room.id;
-  pokerId.searchText = room.name;
-  pokerId.showDropdown = false;
-}
-
 // Обработчики для CRUD
 function editPlayer(player: Player) {
   currentPlayerId.value = player.id;
@@ -742,8 +758,7 @@ function editPlayer(player: Player) {
     middle_name: player.middle_name || '',
     birth_date: player.birth_date || '',
     locations: player.locations || [],
-    payment_methods: player.payment_methods || [],
-    poker_ids: player.poker_ids || []
+    payment_methods: player.payment_methods || []
   };
   
   // Заполняем контактные данные
@@ -755,6 +770,14 @@ function editPlayer(player: Player) {
     searchText: getContactTypeLabel(contact.type),
     showDropdown: false,
     filteredTypes: [...contactTypes.value]
+  })) || [];
+  
+  // Заполняем никнеймы
+  formNicknames.value = player.nicknames?.map(nickname => ({
+    id: nickname.id,
+    nickname: nickname.nickname,
+    room: nickname.room || '',
+    discipline: nickname.discipline || ''
   })) || [];
   
   // Заполняем адрес
@@ -783,16 +806,6 @@ function editPlayer(player: Player) {
     searchText: getPaymentSystemLabel(payment.type),
     showDropdown: false,
     filteredSystems: [...paymentSystems.value]
-  })) || [];
-  
-  // Заполняем ники в покерных румах
-  formPokerIds.value = player.poker_ids?.map(poker => ({
-    id: poker.id,
-    room: poker.room,
-    nickname: poker.nickname,
-    searchText: getPokerRoomName(poker.room),
-    showDropdown: false,
-    filteredRooms: [...pokerRooms.value]
   })) || [];
   
   showEditModal.value = true;
@@ -834,10 +847,22 @@ async function savePlayer() {
   const firstName = formData.value.first_name || '';
   const lastName = formData.value.last_name || '';
   const middleName = formData.value.middle_name || '';
-  formData.value.full_name = `${firstName} ${lastName} ${middleName}`.trim();
+  
+  // Исправляем ошибку компилятора, используя явное приведение типов
+  if ('full_name' in formData.value) {
+    formData.value.full_name = `${firstName} ${lastName} ${middleName}`.trim();
+  }
+  
+  // Обрабатываем пустую дату рождения
+  if (formData.value.birth_date === '' || formData.value.birth_date === undefined) {
+    delete formData.value.birth_date;
+  }
   
   // Обновляем контакты в основных данных формы
   formData.value.contacts = formContacts.value;
+  
+  // Обновляем никнеймы в основных данных формы
+  formData.value.nicknames = formNicknames.value.filter(n => n.nickname.trim() !== '');
   
   // Добавляем локацию если есть данные
   if (formLocation.value.country || formLocation.value.city || formLocation.value.address) {
@@ -846,9 +871,6 @@ async function savePlayer() {
   
   // Добавляем платежные методы
   formData.value.payment_methods = formPaymentMethods.value;
-  
-  // Добавляем ники в покерных румах
-  formData.value.poker_ids = formPokerIds.value;
   
   try {
     if (showEditModal.value && currentPlayerId.value) {
@@ -888,7 +910,7 @@ function closeModal() {
     address: ''
   };
   formPaymentMethods.value = [];
-  formPokerIds.value = [];
+  formNicknames.value = [];
 }
 
 // Утилиты для работы с платежными системами - вспомогательная функция
@@ -903,6 +925,73 @@ function getContactTypeLabel(type: string): string {
   return contactType ? contactType.label : type;
 }
 
+// Функции для работы с никнеймами
+function addNickname() {
+  formNicknames.value.push({
+    nickname: '',
+    room: '',
+  });
+}
+
+function removeNickname(index: number) {
+  formNicknames.value.splice(index, 1);
+}
+
+// Функция для получения иконки типа контакта
+function getContactIcon(type: string): string {
+  const icons: Record<string, string> = {
+    'email': '✉️',
+    'phone': '📱',
+    'telegram': '📞',
+    'whatsapp': '💬',
+    'gipsyteam': '🎮',
+    'vk': '👥',
+    'facebook': '👤',
+    'instagram': '📷',
+    'twitter': '🐦',
+    'skype': '🗣️',
+    'discord': '💬',
+    'other': '🔖'
+  };
+  return icons[type] || '📝';
+}
+
+// Функция для получения счетчика кейсов игрока по статусу
+function getPlayerCaseCount(playerId: string, status: string): number {
+  if (!playerCases.value[playerId]) {
+    return 0;
+  }
+  return playerCases.value[playerId][status] || 0;
+}
+
+// Функция для получения общего количества кейсов игрока
+function getPlayerTotalCaseCount(playerId: string): number {
+  if (!playerCases.value[playerId]) {
+    return 0;
+  }
+  return Object.values(playerCases.value[playerId]).reduce((sum: number, count: number) => sum + count, 0);
+}
+
+// Функция для получения данных о кейсах игроков
+async function fetchPlayerCases() {
+  try {
+    // В реальном приложении здесь был бы запрос к API
+    // Пример: const response = await axios.get('/api/v1/players/cases-summary');
+    
+    // Для демонстрации заполним данными-заглушками
+    for (const player of players.value) {
+      // Генерируем случайные данные для демонстрации
+      playerCases.value[player.id] = {
+        active: Math.floor(Math.random() * 3),
+        completed: Math.floor(Math.random() * 5),
+        paused: Math.floor(Math.random() * 2),
+      };
+    }
+  } catch (error) {
+    console.error('Ошибка при получении данных о кейсах игроков:', error);
+  }
+}
+
 // Загрузка данных при монтировании
 onMounted(async () => {
   await Promise.all([
@@ -910,6 +999,9 @@ onMounted(async () => {
     fetchFunds(),
     fetchPokerRooms()
   ]);
+  
+  // Загружаем данные о кейсах после получения списка игроков
+  await fetchPlayerCases();
 });
 
 // Отслеживаем изменение флага showCreateModal
@@ -924,7 +1016,7 @@ watch(showCreateModal, (newValue) => {
       address: ''
     };
     formPaymentMethods.value = [];
-    formPokerIds.value = [];
+    formNicknames.value = [];
     errorMessage.value = null;
   }
 });

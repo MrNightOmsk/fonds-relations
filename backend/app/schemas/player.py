@@ -193,11 +193,12 @@ class PlayerSearchResult(BaseModel):
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
     description: Optional[str] = None
-    contacts: List[PlayerContact] = []
-    locations: List[PlayerLocation] = []
-    nicknames: List[PlayerNickname] = []
-    payment_methods: List[PlayerPaymentMethod] = []
-    social_media: List[PlayerSocialMedia] = []
+    fund_name: Optional[str] = None
+    cases_count: Optional[int] = 0
+    latest_case_date: Optional[datetime] = None
+    contacts: Optional[List[str]] = []
+    locations: Optional[List[str]] = []
+    nicknames: Optional[List[Dict[str, str]]] = []
 
     class Config:
         orm_mode = True 

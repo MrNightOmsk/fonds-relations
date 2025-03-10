@@ -55,15 +55,73 @@
         
         <button 
           @click="indexAllPlayers" 
-          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
-          :disabled="isIndexing"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 mr-2"
+          :disabled="isIndexing || isFullIndexing"
         >
           <span v-if="isIndexing">Индексация...</span>
           <span v-else>Индексировать игроков</span>
         </button>
+        
+        <button 
+          @click="indexAllPlayersFull" 
+          class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:bg-gray-400"
+          :disabled="isIndexing || isFullIndexing"
+        >
+          <span v-if="isFullIndexing">Полная индексация...</span>
+          <span v-else>Индексировать ВСЕХ игроков</span>
+        </button>
+        
         <div v-if="indexMessage" class="mt-4 p-3 rounded" :class="indexSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
           {{ indexMessage }}
         </div>
+      </div>
+    </div>
+    
+    <!-- Удаление индекса -->
+    <div class="mt-8 bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4">Удаление индекса</h2>
+      <p class="mb-4 text-gray-600">
+        Полностью удаляет индекс игроков из Elasticsearch.
+        <span class="text-red-600 font-bold">Внимание! Эта операция удалит все данные из индекса и не может быть отменена!</span>
+        После удаления индекса необходимо заново его создать с помощью кнопки "Инициализировать индекс".
+      </p>
+      
+      <div v-if="!confirmDeleteIndex" class="mb-4">
+        <button 
+          @click="confirmDeleteIndex = true" 
+          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400"
+          :disabled="isDeleting"
+        >
+          Удалить индекс
+        </button>
+      </div>
+      
+      <div v-else class="mb-4 p-4 bg-red-50 border border-red-300 rounded">
+        <p class="text-red-700 font-bold mb-3">Вы уверены, что хотите удалить индекс?</p>
+        <p class="text-red-600 mb-4">Все данные индекса будут потеряны, и поиск перестанет работать до повторной инициализации.</p>
+        
+        <div class="flex space-x-3">
+          <button 
+            @click="deleteSearchIndex" 
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400"
+            :disabled="isDeleting"
+          >
+            <span v-if="isDeleting">Удаление...</span>
+            <span v-else>Подтвердить удаление</span>
+          </button>
+          
+          <button 
+            @click="confirmDeleteIndex = false" 
+            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            :disabled="isDeleting"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+      
+      <div v-if="deleteMessage" class="mt-4 p-3 rounded" :class="deleteSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+        {{ deleteMessage }}
       </div>
     </div>
     
@@ -94,12 +152,19 @@ const initSuccess = ref(false);
 
 // Состояние для индексации игроков
 const isIndexing = ref(false);
+const isFullIndexing = ref(false);
 const indexMessage = ref('');
 const indexSuccess = ref(false);
 const indexOptions = reactive({
   skip: 0,
   limit: 100
 });
+
+// Состояние для удаления индекса
+const isDeleting = ref(false);
+const confirmDeleteIndex = ref(false);
+const deleteMessage = ref('');
+const deleteSuccess = ref(false);
 
 // Инициализация индекса
 async function initializeIndex() {
@@ -137,6 +202,44 @@ async function indexAllPlayers() {
     console.error('Ошибка при индексации игроков:', error);
   } finally {
     isIndexing.value = false;
+  }
+}
+
+// Полная индексация всех игроков
+async function indexAllPlayersFull() {
+  isFullIndexing.value = true;
+  indexMessage.value = '';
+  
+  try {
+    const result = await searchApi.indexAllPlayersBatched(100);
+    indexSuccess.value = true;
+    indexMessage.value = `Проиндексировано ${result.indexed_count} из ${result.total_count} игроков. Неудач: ${result.failed_count}`;
+  } catch (error: any) {
+    indexSuccess.value = false;
+    indexMessage.value = error.response?.data?.detail || 'Ошибка полной индексации игроков';
+    console.error('Ошибка при полной индексации игроков:', error);
+  } finally {
+    isFullIndexing.value = false;
+  }
+}
+
+// Удаление индекса
+async function deleteSearchIndex() {
+  isDeleting.value = true;
+  deleteMessage.value = '';
+  
+  try {
+    const result = await searchApi.deleteSearchIndex();
+    deleteSuccess.value = true;
+    deleteMessage.value = result.message || 'Индекс успешно удален';
+    // Сбрасываем флаг подтверждения после успешного удаления
+    confirmDeleteIndex.value = false;
+  } catch (error: any) {
+    deleteSuccess.value = false;
+    deleteMessage.value = error.response?.data?.detail || 'Ошибка при удалении индекса';
+    console.error('Ошибка при удалении индекса:', error);
+  } finally {
+    isDeleting.value = false;
   }
 }
 </script> 

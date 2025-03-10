@@ -1,6 +1,9 @@
 import type { Fund } from '@/types/models';
 import { useApiClient } from '@/composables/useApiClient';
 
+// Флаг для отключения мок-данных
+const useMocks = false;
+
 // Моковые данные для демонстрации
 const mockFunds: Fund[] = [
   {
@@ -37,7 +40,7 @@ export function useFundsApi() {
     async getFunds(): Promise<Fund[]> {
       try {
         // В моковом режиме возвращаем локальные данные
-        if (window.location.hostname === 'localhost') {
+        if (useMocks && window.location.hostname === 'localhost') {
           console.log('Using mock data for getFunds');
           return [...mockFunds];
         }
@@ -57,7 +60,7 @@ export function useFundsApi() {
     async getFundById(id: string): Promise<Fund> {
       try {
         // В моковом режиме возвращаем локальные данные
-        if (window.location.hostname === 'localhost') {
+        if (useMocks && window.location.hostname === 'localhost') {
           console.log('Using mock data for getFundById', id);
           const fund = mockFunds.find(f => f.id === id);
           if (!fund) {
@@ -81,7 +84,7 @@ export function useFundsApi() {
     async createFund(fundData: Pick<Fund, 'name' | 'description'>): Promise<Fund> {
       try {
         // В моковом режиме симулируем создание
-        if (window.location.hostname === 'localhost') {
+        if (useMocks && window.location.hostname === 'localhost') {
           console.log('Using mock data for createFund', fundData);
           const newFund: Fund = {
             id: Date.now().toString(),
@@ -110,7 +113,7 @@ export function useFundsApi() {
     async updateFund(id: string, fundData: Partial<Pick<Fund, 'name' | 'description'>>): Promise<Fund> {
       try {
         // В моковом режиме симулируем обновление
-        if (window.location.hostname === 'localhost') {
+        if (useMocks && window.location.hostname === 'localhost') {
           console.log('Using mock data for updateFund', id, fundData);
           const index = mockFunds.findIndex(f => f.id === id);
           
@@ -143,7 +146,7 @@ export function useFundsApi() {
     async deleteFund(id: string): Promise<void> {
       try {
         // В моковом режиме симулируем удаление
-        if (window.location.hostname === 'localhost') {
+        if (useMocks && window.location.hostname === 'localhost') {
           console.log('Using mock data for deleteFund', id);
           const index = mockFunds.findIndex(f => f.id === id);
           
