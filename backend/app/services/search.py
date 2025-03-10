@@ -17,6 +17,7 @@ class SearchService:
         # Словарь для соответствия между формальными именами и их уменьшительными формами
         self.name_variants: Dict[str, List[str]] = {
             "василий": ["вася", "васька", "васёк", "васек", "васенька"],
+            "василиса": ["вася", "васька", "василиска"],
             "иван": ["ваня", "ванька", "ванёк", "ванек", "ванечка"],
             "александр": ["саша", "сашка", "сашенька", "шурик"],
             "николай": ["коля", "колька", "коленька"],
@@ -38,6 +39,12 @@ class SearchService:
             "юрий": ["юра", "юрка", "юрик"],
             "вадим": ["вадик", "вадимка"]
         }
+        
+        # Создаем обратный словарь для поиска уменьшительных имен
+        self.reversed_name_variants = {}
+        for formal, variants in self.name_variants.items():
+            for variant in variants:
+                self.reversed_name_variants[variant] = formal
     
     async def create_index(self) -> None:
         """Create the Elasticsearch index if it doesn't exist."""
@@ -57,6 +64,14 @@ class SearchService:
                                         "russian_stemmer",
                                         "edge_ngram_filter",
                                         "russian_name_synonyms"
+                                    ]
+                                },
+                                "ngram_analyzer": {
+                                    "type": "custom",
+                                    "tokenizer": "standard",
+                                    "filter": [
+                                        "lowercase",
+                                        "edge_ngram_filter"
                                     ]
                                 }
                             },
@@ -87,17 +102,42 @@ class SearchService:
                                 "type": "text",
                                 "analyzer": "russian_analyzer",
                                 "fields": {
-                                    "raw": {"type": "keyword"}
+                                    "raw": {"type": "keyword"},
+                                    "ngram": {"type": "text", "analyzer": "ngram_analyzer"}
                                 }
                             },
-                            "first_name": {"type": "text", "analyzer": "russian_analyzer"},
-                            "last_name": {"type": "text", "analyzer": "russian_analyzer"},
-                            "middle_name": {"type": "text", "analyzer": "russian_analyzer"},
+                            "first_name": {
+                                "type": "text", 
+                                "analyzer": "russian_analyzer",
+                                "fields": {
+                                    "ngram": {"type": "text", "analyzer": "ngram_analyzer"}
+                                }
+                            },
+                            "last_name": {
+                                "type": "text", 
+                                "analyzer": "russian_analyzer",
+                                "fields": {
+                                    "ngram": {"type": "text", "analyzer": "ngram_analyzer"}
+                                }
+                            },
+                            "middle_name": {
+                                "type": "text", 
+                                "analyzer": "russian_analyzer",
+                                "fields": {
+                                    "ngram": {"type": "text", "analyzer": "ngram_analyzer"}
+                                }
+                            },
                             "description": {"type": "text", "analyzer": "russian_analyzer"},
                             "nicknames": {"type": "nested", "properties": {
                                 "id": {"type": "keyword"},
                                 "player_id": {"type": "keyword"},
-                                "nickname": {"type": "text", "analyzer": "russian_analyzer"},
+                                "nickname": {
+                                    "type": "text", 
+                                    "analyzer": "russian_analyzer",
+                                    "fields": {
+                                        "ngram": {"type": "text", "analyzer": "ngram_analyzer"}
+                                    }
+                                },
                                 "created_at": {"type": "date"},
                                 "updated_at": {"type": "date"}
                             }},
@@ -219,6 +259,35 @@ class SearchService:
             print(f"Ошибка при индексации игрока {player.id}: {str(e)}")
             raise
     
+    def _normalize_query(self, query: str) -> str:
+        """
+        Нормализует поисковый запрос: приводит к нижнему регистру,
+        проверяет на уменьшительные формы имен
+        """
+        # Приводим к нижнему регистру
+        query_lower = query.lower()
+        
+        # Проверяем, есть ли запрос в обратном словаре уменьшительных имен
+        if query_lower in self.reversed_name_variants:
+            return self.reversed_name_variants[query_lower]
+            
+        # Проверяем, есть ли запрос в основном словаре имен
+        for formal_name, variants in self.name_variants.items():
+            if query_lower == formal_name:
+                return formal_name
+            
+            # Проверяем, может ли запрос быть частью имени
+            if formal_name.startswith(query_lower):
+                return formal_name
+                
+            # Проверяем, может ли запрос быть частью уменьшительной формы
+            for variant in variants:
+                if variant.startswith(query_lower):
+                    return formal_name
+                    
+        # Если ничего не найдено, возвращаем исходный запрос
+        return query
+
     async def search_players(
         self,
         query: str,
@@ -230,6 +299,9 @@ class SearchService:
         """Search for players in Elasticsearch."""
         try:
             must_conditions = []
+            
+            # Нормализуем запрос
+            normalized_query = self._normalize_query(query)
             
             # Проверяем, не является ли запрос именем или его вариантом
             is_name_query = False
@@ -247,9 +319,15 @@ class SearchService:
             
             # Добавляем основной поисковый запрос с поддержкой неточного поиска
             if query:
-                search_fields = ["full_name^4", "first_name^3", "last_name^3", "nicknames.nickname^2", 
-                                "description", "contacts.value", "locations.city"]
+                search_fields = [
+                    "full_name^4", "full_name.ngram^3",
+                    "first_name^3", "first_name.ngram^2.5",
+                    "last_name^3", "last_name.ngram^2.5",
+                    "nicknames.nickname^2", "nicknames.nickname.ngram^1.5",
+                    "description", "contacts.value", "locations.city"
+                ]
                 
+                # Добавляем основное условие поиска
                 must_conditions.append({
                     "multi_match": {
                         "query": query,
@@ -272,50 +350,71 @@ class SearchService:
                             "boost": 2.0
                         }
                     })
-                else:
-                    # Добавляем дополнительный запрос для улучшения поиска по частичным совпадениям
-                    must_conditions.append({
-                        "bool": {
-                            "should": [
-                                {
-                                    "match_phrase_prefix": {
-                                        "full_name": {
-                                            "query": query,
-                                            "boost": 1.5
-                                        }
+                
+                # Добавляем поиск по префиксу (для случаев, когда вводят начало имени)
+                must_conditions.append({
+                    "bool": {
+                        "should": [
+                            {
+                                "prefix": {
+                                    "full_name": {
+                                        "value": query_lower,
+                                        "boost": 1.5
                                     }
-                                },
-                                {
-                                    "match_phrase_prefix": {
-                                        "first_name": {
-                                            "query": query,
-                                            "boost": 1.2
-                                        }
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "first_name": {
+                                        "value": query_lower,
+                                        "boost": 1.5
                                     }
-                                },
-                                {
-                                    "match_phrase_prefix": {
-                                        "last_name": {
-                                            "query": query,
-                                            "boost": 1.0
-                                        }
+                                }
+                            },
+                            {
+                                "match_phrase_prefix": {
+                                    "full_name.ngram": {
+                                        "query": query_lower,
+                                        "boost": 1.3
                                     }
-                                },
-                                {
-                                    "nested": {
-                                        "path": "nicknames",
-                                        "query": {
-                                            "match_phrase_prefix": {
-                                                "nicknames.nickname": {
-                                                    "query": query,
-                                                    "boost": 0.8
-                                                }
+                                }
+                            },
+                            {
+                                "match_phrase_prefix": {
+                                    "first_name.ngram": {
+                                        "query": query_lower,
+                                        "boost": 1.3
+                                    }
+                                }
+                            },
+                            {
+                                "nested": {
+                                    "path": "nicknames",
+                                    "query": {
+                                        "match_phrase_prefix": {
+                                            "nicknames.nickname.ngram": {
+                                                "query": query_lower,
+                                                "boost": 1.0
                                             }
                                         }
                                     }
                                 }
-                            ],
-                            "minimum_should_match": 1,
+                            }
+                        ],
+                        "minimum_should_match": 1,
+                        "boost": 1.5
+                    }
+                })
+                
+                # Если была найдена нормализованная форма запроса, добавляем её как отдельное условие
+                if normalized_query != query:
+                    must_conditions.append({
+                        "multi_match": {
+                            "query": normalized_query,
+                            "fields": search_fields,
+                            "type": "best_fields",
+                            "fuzziness": "AUTO",
+                            "prefix_length": 1,
                             "boost": 1.5
                         }
                     })
@@ -340,17 +439,27 @@ class SearchService:
                     }
                 })
             
+            # Строим запрос с условием "или" для всех условий
+            query_body = {
+                "query": {
+                    "bool": {
+                        "should": must_conditions,
+                        "minimum_should_match": 1
+                    }
+                },
+                "sort": [
+                    {"_score": {"order": "desc"}}
+                ],
+                "from": skip,
+                "size": limit
+            }
+            
+            print(f"Elasticsearch query: {query_body}")
+            
             # Execute the search
             response = await self.es.search(
                 index=self.index_name,
-                body={
-                    "query": {"bool": {"must": must_conditions}},
-                    "sort": [
-                        {"_score": {"order": "desc"}}
-                    ],
-                    "from": skip,
-                    "size": limit
-                }
+                body=query_body
             )
             
             # Convert results to schema objects

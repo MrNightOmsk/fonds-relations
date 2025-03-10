@@ -36,7 +36,19 @@ async def unified_search(
     Унифицированный поиск по игрокам, кейсам и другим сущностям.
     """
     try:
+        # Проверяем длину запроса
+        query = query.strip()
+        if len(query) < 2:
+            logger.warning(f"Слишком короткий поисковый запрос: '{query}'")
+            return UnifiedSearchResult(
+                players=[],
+                total_players=0,
+                cases=[],
+                total_cases=0
+            )
+            
         # Поиск игроков
+        logger.info(f"Выполняется поиск для запроса: '{query}'")
         players = await search_service.search_players(
             query=query,
             room=room,
@@ -44,6 +56,8 @@ async def unified_search(
             skip=skip,
             limit=limit
         )
+        
+        logger.info(f"Найдено {len(players)} игроков по запросу '{query}'")
         
         # В будущем здесь можно добавить поиск по другим сущностям
         
@@ -66,9 +80,12 @@ async def unified_search(
         
         # Если это ошибка с индексом "no such index" - предлагаем инициализировать индекс
         if "index_not_found_exception" in error_msg.lower():
-            raise HTTPException(
-                status_code=404,
-                detail=f"Поисковый индекс не найден. Необходимо инициализировать поисковый индекс."
+            logger.warning("Поисковый индекс не найден. Возвращаем пустой результат.")
+            return UnifiedSearchResult(
+                players=[],
+                total_players=0,
+                cases=[],
+                total_cases=0
             )
             
         # Если это ошибка с маппингом или типами полей
@@ -83,7 +100,13 @@ async def unified_search(
             )
             
         # Для всех остальных ошибок
-        raise HTTPException(status_code=500, detail=f"Ошибка поиска: {error_msg}")
+        logger.warning(f"Непредвиденная ошибка поиска: {error_msg}. Возвращаем пустой результат.")
+        return UnifiedSearchResult(
+            players=[],
+            total_players=0,
+            cases=[],
+            total_cases=0
+        )
 
 
 @router.post("/init", status_code=200)
