@@ -237,8 +237,8 @@ const submitForm = async () => {
       description: form.value.description,
       player_id: form.value.player_id || null,
       status: form.value.status,
-      amount: form.value.amount ? parseFloat(form.value.amount) : null,
-      currency: form.value.currency,
+      arbitrage_amount: form.value.amount ? parseFloat(form.value.amount) : 0.0,
+      arbitrage_currency: form.value.currency || 'USD',
       created_by_fund_id: authStore.user?.fund_id
     };
     
