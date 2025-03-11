@@ -7,6 +7,7 @@ services:
     build:
       context: backend
       dockerfile: Dockerfile
+    container_name: fonds-backend
     ports:
       - "8000:8000"
     environment:
@@ -42,8 +43,9 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile
+    container_name: fonds-frontend
     ports:
-      - "3000:80"
+      - "3001:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -52,6 +54,7 @@ services:
 
   db:
     image: postgres:15
+    container_name: fonds-db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -61,6 +64,7 @@ services:
 
   elasticsearch:
     image: elasticsearch:7.17.0
+    container_name: fonds-elasticsearch
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
