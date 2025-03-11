@@ -1,30 +1,30 @@
 <template>
   <div class="cases-list">
     <div class="page-header mb-6">
-      <h1 class="text-2xl font-bold">Список кейсов</h1>
-      <div class="mt-2 text-gray-600">Управление и просмотр всех кейсов в системе</div>
+      <h1 class="text-2xl font-bold text-text-light dark:text-text-dark">Список кейсов</h1>
+      <div class="mt-2 text-gray-600 dark:text-gray-400">Управление и просмотр всех кейсов в системе</div>
     </div>
     
     <!-- Панель фильтров и поиска -->
-    <div class="filters-panel bg-white p-4 rounded-lg shadow-sm mb-6">
+    <div class="filters-panel bg-white dark:bg-background-dark p-4 rounded-lg shadow-sm mb-6 border border-border-light dark:border-border-dark">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="search-box">
-          <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Поиск</label>
+          <label for="search" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Поиск</label>
           <input 
             type="text" 
             id="search" 
             v-model="searchQuery" 
             placeholder="Поиск по названию или игроку..." 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800"
+            class="w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md text-text-light dark:text-text-dark bg-white dark:bg-background-dark"
           >
         </div>
         
         <div class="status-filter">
-          <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+          <label for="status" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Статус</label>
           <select 
             id="status" 
             v-model="statusFilter" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800"
+            class="w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md text-text-light dark:text-text-dark bg-white dark:bg-background-dark"
           >
             <option value="">Все статусы</option>
             <option value="open">Открыт</option>
@@ -35,11 +35,11 @@
         </div>
         
         <div class="date-filter">
-          <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Период</label>
+          <label for="date" class="block text-sm font-medium text-text-light dark:text-text-dark mb-1">Период</label>
           <select 
             id="date" 
             v-model="dateFilter" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800"
+            class="w-full px-3 py-2 border border-border-light dark:border-border-dark rounded-md text-text-light dark:text-text-dark bg-white dark:bg-background-dark"
           >
             <option value="">Все время</option>
             <option value="today">Сегодня</option>
@@ -52,11 +52,11 @@
       
       <!-- Кнопки управления -->
       <div class="flex justify-between items-center mt-4">
-        <div class="text-sm text-gray-600">
+        <div class="text-sm text-text-secondary-light dark:text-text-secondary-dark">
           Найдено кейсов: <span class="font-medium">{{ totalCasesCount }}</span>
         </div>
         <div class="flex space-x-2">
-          <button @click="showCreateCaseModal = true" class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          <button @click="showCreateCaseModal = true" class="px-3 py-2 bg-primary dark:bg-primary-dark text-white rounded-md hover:bg-primary-600 dark:hover:bg-primary-500">
             <span class="hidden md:inline">Создать новый кейс</span>
             <span class="md:hidden">+ Кейс</span>
           </button>
@@ -67,23 +67,23 @@
     <!-- Список кейсов -->
     <div class="cases-container">
       <div v-if="loading" class="text-center py-8">
-        <div class="inline-block animate-spin h-6 w-6 border-2 border-blue-500 rounded-full border-t-transparent mb-2"></div>
-        <p class="text-gray-600">Загрузка кейсов...</p>
+        <div class="inline-block animate-spin h-6 w-6 border-2 border-primary dark:border-primary-dark rounded-full border-t-transparent mb-2"></div>
+        <p class="text-text-secondary-light dark:text-text-secondary-dark">Загрузка кейсов...</p>
       </div>
       
-      <div v-else-if="cases.length === 0" class="text-center py-8 bg-white rounded-lg shadow-sm">
-        <p class="text-lg text-gray-500">Нет кейсов, соответствующих выбранным фильтрам</p>
+      <div v-else-if="cases.length === 0" class="text-center py-8 bg-white dark:bg-background-dark rounded-lg shadow-sm border border-border-light dark:border-border-dark">
+        <p class="text-lg text-text-secondary-light dark:text-text-secondary-dark">Нет кейсов, соответствующих выбранным фильтрам</p>
         <button 
           @click="clearFilters" 
-          class="mt-2 text-blue-600 hover:underline"
+          class="mt-2 text-primary dark:text-primary-dark hover:underline"
         >
           Сбросить фильтры
         </button>
       </div>
       
-      <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div v-else class="bg-white dark:bg-background-dark rounded-lg shadow-sm overflow-hidden border border-border-light dark:border-border-dark">
         <!-- Заголовок таблицы -->
-        <div class="hidden md:grid md:grid-cols-6 bg-gray-50 p-3 border-b text-sm font-medium text-gray-600">
+        <div class="hidden md:grid md:grid-cols-6 bg-surface-light dark:bg-surface-dark p-3 border-b border-border-light dark:border-border-dark text-sm font-medium text-text-light dark:text-text-dark">
           <div class="col-span-2">Название</div>
           <div>Игрок</div>
           <div>Статус</div>
@@ -92,30 +92,30 @@
         </div>
         
         <!-- Строки таблицы -->
-        <div v-for="case_item in cases" :key="case_item.id" class="border-b last:border-b-0">
+        <div v-for="case_item in cases" :key="case_item.id" class="border-b border-border-light dark:border-border-dark last:border-b-0">
           <!-- Мобильный вид -->
           <div class="md:hidden p-3">
             <div class="flex justify-between items-start mb-2">
-              <h3 class="font-medium">{{ case_item.title }}</h3>
+              <h3 class="font-medium text-text-light dark:text-text-dark">{{ case_item.title }}</h3>
               <span :class="getStatusClass(case_item.status)" class="text-xs px-2 py-1 rounded-full">
                 {{ getStatusText(case_item.status) }}
               </span>
             </div>
-            <div class="text-sm text-gray-600">
+            <div class="text-sm text-text-secondary-light dark:text-text-secondary-dark">
               <p v-if="case_item.player_name">Игрок: {{ case_item.player_name }}</p>
               <p>Создан: {{ formatDate(case_item.created_at) }}</p>
             </div>
             <div class="mt-2 flex space-x-2">
               <button 
                 @click="navigateToCase(case_item.id)" 
-                class="px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                class="px-2 py-1 text-sm bg-primary/10 dark:bg-primary-dark/20 text-primary dark:text-primary-dark rounded hover:bg-primary/20 dark:hover:bg-primary-dark/30"
               >
                 Просмотр
               </button>
               <button 
                 v-if="canEditCase(case_item)"
                 @click="editCase(case_item)" 
-                class="px-2 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                class="px-2 py-1 text-sm bg-surface-light dark:bg-surface-dark text-text-light dark:text-text-dark rounded hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 Редактировать
               </button>
@@ -123,26 +123,26 @@
           </div>
           
           <!-- Десктопный вид -->
-          <div class="hidden md:grid md:grid-cols-6 p-3 items-center hover:bg-gray-50">
-            <div class="col-span-2 font-medium">{{ case_item.title }}</div>
-            <div>{{ case_item.player_name || 'Не указан' }}</div>
+          <div class="hidden md:grid md:grid-cols-6 p-3 items-center hover:bg-surface-light dark:hover:bg-surface-dark">
+            <div class="col-span-2 font-medium text-text-light dark:text-text-dark">{{ case_item.title }}</div>
+            <div class="text-text-light dark:text-text-dark">{{ case_item.player_name || 'Не указан' }}</div>
             <div>
               <span :class="getStatusClass(case_item.status)" class="text-xs px-2 py-1 rounded-full">
                 {{ getStatusText(case_item.status) }}
               </span>
             </div>
-            <div class="text-sm">{{ formatDate(case_item.created_at) }}</div>
+            <div class="text-sm text-text-secondary-light dark:text-text-secondary-dark">{{ formatDate(case_item.created_at) }}</div>
             <div class="flex space-x-2">
               <button 
                 @click="navigateToCase(case_item.id)" 
-                class="px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                class="px-2 py-1 text-sm bg-primary/10 dark:bg-primary-dark/20 text-primary dark:text-primary-dark rounded hover:bg-primary/20 dark:hover:bg-primary-dark/30"
               >
                 Просмотр
               </button>
               <button 
                 v-if="canEditCase(case_item)"
                 @click="editCase(case_item)" 
-                class="px-2 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                class="px-2 py-1 text-sm bg-surface-light dark:bg-surface-dark text-text-light dark:text-text-dark rounded hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 Редактировать
               </button>
@@ -158,7 +158,7 @@
         <button 
           @click="currentPage = 1" 
           :disabled="currentPage === 1"
-          class="pagination-btn" 
+          class="pagination-btn bg-white dark:bg-background-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark" 
           :class="{'opacity-50 cursor-not-allowed': currentPage === 1}"
         >
           &laquo;
@@ -166,7 +166,7 @@
         <button 
           @click="currentPage--" 
           :disabled="currentPage === 1"
-          class="pagination-btn" 
+          class="pagination-btn bg-white dark:bg-background-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark" 
           :class="{'opacity-50 cursor-not-allowed': currentPage === 1}"
         >
           &lsaquo;
@@ -175,15 +175,15 @@
         <template v-for="page in displayedPages" :key="page">
           <button 
             v-if="page === '...'" 
-            class="pagination-btn opacity-50 cursor-default"
+            class="pagination-btn bg-white dark:bg-background-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark opacity-50 cursor-default"
           >
             ...
           </button>
           <button 
             v-else
             @click="currentPage = page" 
-            class="pagination-btn" 
-            :class="{'bg-blue-600 text-white': currentPage === page}"
+            class="pagination-btn border border-border-light dark:border-border-dark" 
+            :class="{'bg-primary dark:bg-primary-dark text-white': currentPage === page, 'bg-white dark:bg-background-dark text-text-light dark:text-text-dark': currentPage !== page}"
           >
             {{ page }}
           </button>
@@ -192,7 +192,7 @@
         <button 
           @click="currentPage++" 
           :disabled="currentPage === totalPages"
-          class="pagination-btn" 
+          class="pagination-btn bg-white dark:bg-background-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark" 
           :class="{'opacity-50 cursor-not-allowed': currentPage === totalPages}"
         >
           &rsaquo;
@@ -200,7 +200,7 @@
         <button 
           @click="currentPage = totalPages" 
           :disabled="currentPage === totalPages"
-          class="pagination-btn" 
+          class="pagination-btn bg-white dark:bg-background-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark" 
           :class="{'opacity-50 cursor-not-allowed': currentPage === totalPages}"
         >
           &raquo;
@@ -440,22 +440,6 @@ onMounted(async () => {
 }
 
 .pagination-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.25rem;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s;
-}
-
-.pagination-btn:hover:not(:disabled):not(.opacity-50) {
-  background-color: #f3f4f6;
-}
-
-.pagination-btn:active:not(:disabled):not(.opacity-50) {
-  background-color: #e5e7eb;
+  @apply px-3 py-1 rounded-md text-sm font-medium transition-colors;
 }
 </style> 

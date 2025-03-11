@@ -1,9 +1,9 @@
 <template>
   <div v-if="show" class="modal-backdrop" @mousedown="onBackdropMouseDown" @mouseup="onBackdropMouseUp">
-    <div class="modal-content" @mousedown.stop>
-      <div class="modal-header">
-        <h3 class="text-lg font-medium text-gray-800">Создать новый кейс</h3>
-        <button @click="close" class="close-btn">
+    <div class="modal-content bg-white dark:bg-background-dark border border-border-light dark:border-border-dark">
+      <div class="modal-header border-b border-border-light dark:border-border-dark">
+        <h3 class="text-lg font-medium text-text-light dark:text-text-dark">Создать новый кейс</h3>
+        <button @click="close" class="close-btn text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark">
           <span>×</span>
         </button>
       </div>
@@ -12,11 +12,11 @@
         <form @submit.prevent="submitForm">
           <!-- Заголовок кейса -->
           <div class="form-group">
-            <label class="form-label text-gray-700">Заголовок</label>
+            <label class="form-label text-text-light dark:text-text-dark">Заголовок</label>
             <input 
               v-model="form.title" 
               type="text" 
-              class="form-input text-gray-800" 
+              class="form-input text-text-light dark:text-text-dark bg-white dark:bg-background-dark border-border-light dark:border-border-dark" 
               placeholder="Введите заголовок кейса" 
               required
             />
@@ -24,28 +24,28 @@
           
           <!-- Поиск игрока -->
           <div class="form-group">
-            <label class="form-label text-gray-700">Игрок</label>
+            <label class="form-label text-text-light dark:text-text-dark">Игрок</label>
             <div class="relative">
               <input 
                 v-model="playerSearch" 
                 type="text" 
-                class="form-input text-gray-800" 
+                class="form-input text-text-light dark:text-text-dark bg-white dark:bg-background-dark border-border-light dark:border-border-dark" 
                 placeholder="Найти игрока..." 
                 @input="debouncedSearchPlayers"
               />
               
               <div v-if="playersLoading" class="absolute right-3 top-2.5">
-                <div class="inline-block animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                <div class="inline-block animate-spin h-4 w-4 border-2 border-primary dark:border-primary-dark rounded-full border-t-transparent"></div>
               </div>
               
               <!-- Результаты поиска игроков -->
               <div v-if="playerResults.length > 0 && playerSearch" 
-                class="results-container mt-1 absolute z-10 w-full shadow-lg rounded-lg border overflow-hidden bg-white">
+                class="results-container mt-1 absolute z-10 w-full shadow-lg rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-white dark:bg-background-dark">
                 <div v-for="player in playerResults" :key="player.id" 
                     @click="selectPlayer(player)" 
-                    class="result-item p-2 hover:bg-blue-50 cursor-pointer">
-                  <div class="font-medium text-gray-800">{{ player.title }}</div>
-                  <div class="text-xs text-gray-500" v-if="player.details">{{ player.details }}</div>
+                    class="result-item p-2 hover:bg-surface-light dark:hover:bg-surface-dark cursor-pointer">
+                  <div class="font-medium text-text-light dark:text-text-dark">{{ player.title }}</div>
+                  <div class="text-xs text-text-secondary-light dark:text-text-secondary-dark" v-if="player.details">{{ player.details }}</div>
                 </div>
               </div>
             </div>
@@ -61,10 +61,10 @@
           
           <!-- Описание -->
           <div class="form-group">
-            <label class="form-label text-gray-700">Описание</label>
+            <label class="form-label text-text-light dark:text-text-dark">Описание</label>
             <textarea 
               v-model="form.description" 
-              class="form-input h-24 text-gray-800" 
+              class="form-input h-24 text-text-light dark:text-text-dark bg-white dark:bg-background-dark border-border-light dark:border-border-dark" 
               placeholder="Опишите ситуацию..." 
               required
             ></textarea>
@@ -73,20 +73,20 @@
           <!-- Сумма и валюта -->
           <div class="grid grid-cols-2 gap-3">
             <div class="form-group">
-              <label class="form-label text-gray-700">Сумма</label>
+              <label class="form-label text-text-light dark:text-text-dark">Сумма</label>
               <input 
                 v-model="form.amount" 
                 type="number" 
                 min="0" 
                 step="0.01" 
-                class="form-input text-gray-800" 
+                class="form-input text-text-light dark:text-text-dark bg-white dark:bg-background-dark border-border-light dark:border-border-dark" 
                 placeholder="0.00"
               />
             </div>
             
             <div class="form-group">
-              <label class="form-label text-gray-700">Валюта</label>
-              <select v-model="form.currency" class="form-input text-gray-800">
+              <label class="form-label text-text-light dark:text-text-dark">Валюта</label>
+              <select v-model="form.currency" class="form-input text-text-light dark:text-text-dark bg-white dark:bg-background-dark border-border-light dark:border-border-dark">
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="RUB">RUB</option>

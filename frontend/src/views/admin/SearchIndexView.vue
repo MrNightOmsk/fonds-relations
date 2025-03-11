@@ -1,54 +1,54 @@
 <template>
   <div class="search-index-admin">
-    <h1 class="text-2xl font-bold mb-6">Управление поисковым индексом</h1>
+    <h1 class="text-2xl font-bold mb-6 text-text-light dark:text-text-dark">Управление поисковым индексом</h1>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Инициализация индекса -->
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-xl font-semibold mb-4">Инициализация индекса</h2>
-        <p class="mb-4 text-gray-600">
+      <div class="bg-white dark:bg-background-dark p-6 rounded-lg shadow border border-border-light dark:border-border-dark">
+        <h2 class="text-xl font-semibold mb-4 text-text-light dark:text-text-dark">Инициализация индекса</h2>
+        <p class="mb-4 text-text-secondary-light dark:text-text-secondary-dark">
           Создает индекс в Elasticsearch с необходимыми маппингами и настройками.
           Используйте эту функцию при первом запуске или если индекс был удален.
         </p>
         <button 
           @click="initializeIndex" 
-          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+          class="bg-primary dark:bg-primary-dark text-white px-4 py-2 rounded hover:bg-primary-600 dark:hover:bg-primary-500 disabled:bg-gray-400 dark:disabled:bg-gray-600"
           :disabled="isInitializing"
         >
           <span v-if="isInitializing">Инициализация...</span>
           <span v-else>Инициализировать индекс</span>
         </button>
-        <div v-if="initMessage" class="mt-4 p-3 rounded" :class="initSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+        <div v-if="initMessage" class="mt-4 p-3 rounded" :class="initSuccess ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'">
           {{ initMessage }}
         </div>
       </div>
       
       <!-- Индексация игроков -->
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-xl font-semibold mb-4">Индексация игроков</h2>
-        <p class="mb-4 text-gray-600">
+      <div class="bg-white dark:bg-background-dark p-6 rounded-lg shadow border border-border-light dark:border-border-dark">
+        <h2 class="text-xl font-semibold mb-4 text-text-light dark:text-text-dark">Индексация игроков</h2>
+        <p class="mb-4 text-text-secondary-light dark:text-text-secondary-dark">
           Индексирует игроков из базы данных в Elasticsearch.
           Вы можете указать количество игроков для индексации и смещение.
         </p>
         
         <div class="flex flex-col space-y-4 mb-4">
           <div class="flex items-center">
-            <label class="w-24">Смещение:</label>
+            <label class="w-24 text-text-light dark:text-text-dark">Смещение:</label>
             <input 
               v-model.number="indexOptions.skip" 
               type="number" 
               min="0" 
-              class="border rounded px-2 py-1 w-24"
+              class="border border-border-light dark:border-border-dark rounded px-2 py-1 w-24 bg-white dark:bg-background-dark text-text-light dark:text-text-dark"
             />
           </div>
           <div class="flex items-center">
-            <label class="w-24">Лимит:</label>
+            <label class="w-24 text-text-light dark:text-text-dark">Лимит:</label>
             <input 
               v-model.number="indexOptions.limit" 
               type="number" 
               min="1" 
               max="1000" 
-              class="border rounded px-2 py-1 w-24"
+              class="border border-border-light dark:border-border-dark rounded px-2 py-1 w-24 bg-white dark:bg-background-dark text-text-light dark:text-text-dark"
             />
           </div>
         </div>

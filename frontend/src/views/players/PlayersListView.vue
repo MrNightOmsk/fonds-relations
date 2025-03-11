@@ -1,7 +1,7 @@
 <template>
   <div class="players-page container mx-auto px-4 py-6">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-      <h1 class="text-2xl font-bold">Список игроков</h1>
+      <h1 class="text-2xl font-bold text-text-light dark:text-text-dark">Список игроков</h1>
       <router-link 
         v-if="userCanCreatePlayers" 
         to="/players/create" 
@@ -12,7 +12,7 @@
     </div>
 
     <!-- Фильтры и поиск -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
+    <div class="bg-white dark:bg-background-dark rounded-lg shadow p-4 mb-6 border border-border-light dark:border-border-dark">
       <div class="flex flex-wrap gap-4">
         <!-- Поиск -->
         <div class="flex-grow max-w-md">
@@ -22,11 +22,11 @@
               v-model="searchQuery" 
               type="text" 
               placeholder="Поиск по имени или никнейму..." 
-              class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md"
+              class="w-full px-3 py-2 pl-10 border border-border-light dark:border-border-dark rounded-md bg-white dark:bg-background-dark text-text-light dark:text-text-dark"
               @input="filterPlayers"
             />
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="text-gray-500">🔍</span>
+              <span class="text-text-secondary-light dark:text-text-secondary-dark">🔍</span>
             </div>
           </div>
         </div>
@@ -34,23 +34,23 @@
     </div>
 
     <!-- Индикатор загрузки -->
-    <div v-if="loading" class="bg-white rounded-lg shadow p-6 text-center">
+    <div v-if="loading" class="bg-white dark:bg-background-dark rounded-lg shadow p-6 text-center border border-border-light dark:border-border-dark">
       <div class="flex justify-center items-center p-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary dark:border-primary-dark"></div>
       </div>
     </div>
 
     <!-- Сообщение об отсутствии игроков -->
-    <div v-else-if="paginatedPlayers.length === 0" class="bg-white rounded-lg shadow p-6 text-center">
-      <p class="text-lg text-gray-600">Игроки не найдены</p>
+    <div v-else-if="paginatedPlayers.length === 0" class="bg-white dark:bg-background-dark rounded-lg shadow p-6 text-center border border-border-light dark:border-border-dark">
+      <p class="text-lg text-text-secondary-light dark:text-text-secondary-dark">Игроки не найдены</p>
     </div>
 
     <!-- Сетка карточек -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-      <div v-for="player in paginatedPlayers" :key="player.id" class="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+      <div v-for="player in paginatedPlayers" :key="player.id" class="bg-white dark:bg-background-dark rounded-lg shadow hover:shadow-md transition-shadow border border-border-light dark:border-border-dark">
         <!-- Заголовок карточки с именем -->
-        <div class="p-4 border-b border-gray-200">
-          <h3 class="font-semibold text-lg truncate" @click="viewPlayerDetails(player)">{{ player.full_name }}</h3>
+        <div class="p-4 border-b border-border-light dark:border-border-dark">
+          <h3 class="font-semibold text-lg truncate text-text-light dark:text-text-dark" @click="viewPlayerDetails(player)">{{ player.full_name }}</h3>
         </div>
         
         <!-- Основное содержимое карточки -->
@@ -60,32 +60,32 @@
             <span 
               v-for="nickname in player.nicknames.slice(0, 3)" 
               :key="nickname.id" 
-              class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+              class="inline-block bg-primary/10 dark:bg-primary-dark/20 text-primary dark:text-primary-dark text-xs px-2 py-1 rounded"
             >
               {{ nickname.nickname }}
             </span>
             <span 
               v-if="player.nicknames.length > 3" 
-              class="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded"
+              class="inline-block bg-surface-light dark:bg-surface-dark text-text-light dark:text-text-dark text-xs px-2 py-1 rounded"
             >
               +{{ player.nicknames.length - 3 }}
             </span>
           </div>
           
           <!-- Информация о кейсах -->
-          <div class="border-t border-gray-100 pt-2 mt-2">
-            <div class="text-sm font-medium mb-1">Кейсы:</div>
+          <div class="border-t border-border-light dark:border-border-dark pt-2 mt-2">
+            <div class="text-sm font-medium mb-1 text-text-light dark:text-text-dark">Кейсы:</div>
             <div class="flex flex-wrap gap-2">
               <router-link 
                 :to="`/cases?player_id=${player.id}&status=active`" 
-                class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs flex items-center"
+                class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs flex items-center"
               >
                 <span class="mr-1">🟢</span>
                 Активные: {{ getPlayerCaseCount(player.id, 'active') }}
               </router-link>
               <router-link 
                 :to="`/cases?player_id=${player.id}&status=completed`" 
-                class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs flex items-center"
+                class="px-2 py-1 bg-primary/10 dark:bg-primary-dark/20 text-primary dark:text-primary-dark rounded text-xs flex items-center"
               >
                 <span class="mr-1">✅</span>
                 Завершенные: {{ getPlayerCaseCount(player.id, 'completed') }}
@@ -94,34 +94,34 @@
             <div v-if="getPlayerTotalCaseCount(player.id) > 0" class="mt-1">
               <router-link 
                 :to="`/cases?player_id=${player.id}`" 
-                class="text-xs text-blue-600 hover:text-blue-800"
+                class="text-xs text-primary dark:text-primary-dark hover:text-primary-600 dark:hover:text-primary-500"
               >
                 Все кейсы игрока →
               </router-link>
             </div>
-            <div v-else class="text-xs text-gray-500 mt-1">
+            <div v-else class="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
               Нет активных кейсов
             </div>
           </div>
           
           <!-- Контакты -->
           <div v-if="player.contacts && player.contacts.length > 0" class="space-y-1">
-            <div v-for="contact in player.contacts.slice(0, 2)" :key="contact.id" class="flex items-center text-sm text-gray-600">
-              <span class="mr-1 w-16 text-gray-500">{{ getContactIcon(contact.type) }} {{ contact.type }}:</span>
+            <div v-for="contact in player.contacts.slice(0, 2)" :key="contact.id" class="flex items-center text-sm text-text-light dark:text-text-dark">
+              <span class="mr-1 w-16 text-text-secondary-light dark:text-text-secondary-dark">{{ getContactIcon(contact.type) }} {{ contact.type }}:</span>
               <span class="truncate">{{ contact.value }}</span>
             </div>
-            <div v-if="player.contacts.length > 2" class="text-xs text-gray-500">
+            <div v-if="player.contacts.length > 2" class="text-xs text-text-secondary-light dark:text-text-secondary-dark">
               и еще {{ player.contacts.length - 2 }} контакта(ов)
             </div>
           </div>
         </div>
         
         <!-- Футер карточки -->
-        <div class="p-3 bg-gray-50 text-xs text-gray-500 rounded-b-lg flex justify-between">
+        <div class="p-3 bg-surface-light dark:bg-surface-dark text-xs text-text-secondary-light dark:text-text-secondary-dark rounded-b-lg flex justify-between">
           <span>{{ formatDate(player.created_at) }}</span>
           <button 
             @click="viewPlayerDetails(player)" 
-            class="text-blue-600 hover:text-blue-800"
+            class="text-primary dark:text-primary-dark hover:text-primary-600 dark:hover:text-primary-500"
           >
             Подробнее →
           </button>
@@ -135,7 +135,7 @@
         <button 
           @click="currentPage > 1 && (currentPage--)" 
           class="px-3 py-1 rounded border" 
-          :class="currentPage === 1 ? 'text-gray-400 border-gray-200' : 'text-blue-600 border-blue-300 hover:bg-blue-50'"
+          :class="currentPage === 1 ? 'text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
           :disabled="currentPage === 1"
         >
           &larr;
@@ -146,7 +146,7 @@
           :key="page" 
           @click="currentPage = page" 
           class="px-3 py-1 rounded border" 
-          :class="currentPage === page ? 'bg-blue-600 text-white border-blue-600' : 'text-blue-600 border-blue-300 hover:bg-blue-50'"
+          :class="currentPage === page ? 'bg-primary text-white border-primary dark:border-primary-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
         >
           {{ page }}
         </button>
@@ -154,7 +154,7 @@
         <button 
           @click="currentPage < totalPages && (currentPage++)" 
           class="px-3 py-1 rounded border" 
-          :class="currentPage === totalPages ? 'text-gray-400 border-gray-200' : 'text-blue-600 border-blue-300 hover:bg-blue-50'"
+          :class="currentPage === totalPages ? 'text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
           :disabled="currentPage === totalPages"
         >
           &rarr;

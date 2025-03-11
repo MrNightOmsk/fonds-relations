@@ -1,16 +1,16 @@
 <template>
   <div class="case-detail p-4">
     <div v-if="loading" class="text-center py-16">
-      <div class="animate-spin h-12 w-12 border-4 border-blue-500 rounded-full border-t-transparent mx-auto"></div>
-      <p class="mt-4 text-gray-600">Загрузка дела...</p>
+      <div class="animate-spin h-12 w-12 border-4 border-primary dark:border-primary-dark rounded-full border-t-transparent mx-auto"></div>
+      <p class="mt-4 text-text-secondary-light dark:text-text-secondary-dark">Загрузка дела...</p>
     </div>
     
-    <div v-else-if="error" class="p-6 bg-red-50 text-red-700 rounded-lg my-4">
+    <div v-else-if="error" class="p-6 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg my-4">
       <h3 class="text-lg font-medium mb-2">Ошибка загрузки</h3>
       <p>{{ error }}</p>
       <button 
         @click="fetchCase" 
-        class="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        class="mt-4 px-4 py-2 bg-red-600 dark:bg-red-800 text-white rounded hover:bg-red-700 dark:hover:bg-red-700"
       >
         Попробовать снова
       </button>
@@ -18,22 +18,22 @@
     
     <div v-else-if="currentCase">
       <!-- Заголовок дела -->
-      <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+      <div class="bg-white dark:bg-background-dark p-6 rounded-lg shadow-sm mb-6 border border-border-light dark:border-border-dark">
         <div class="flex justify-between items-start">
           <div>
-            <h1 class="text-2xl font-medium">
+            <h1 class="text-2xl font-medium text-text-light dark:text-text-dark">
               Дело #{{ currentCase.case_number || currentCase.id.substring(0, 8) }}
-              <span class="ml-2 px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-800">
+              <span class="ml-2 px-3 py-1 text-sm rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
                 {{ currentCase.status }}
               </span>
             </h1>
-            <p class="text-gray-600 mt-1">
+            <p class="text-text-secondary-light dark:text-text-secondary-dark mt-1">
               ID: {{ currentCase.id }}
             </p>
           </div>
           <button
             @click="isDebugMode = !isDebugMode"
-            class="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+            class="px-4 py-2 border border-border-light dark:border-border-dark rounded-lg text-text-light dark:text-text-dark hover:bg-surface-light dark:hover:bg-surface-dark"
           >
             {{ isDebugMode ? 'Скрыть отладку' : 'Показать отладку' }}
           </button>
@@ -41,51 +41,51 @@
       </div>
       
       <!-- Основная информация -->
-      <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <h2 class="text-lg font-medium mb-4">Основная информация</h2>
+      <div class="bg-white dark:bg-background-dark p-6 rounded-lg shadow-sm mb-6 border border-border-light dark:border-border-dark">
+        <h2 class="text-lg font-medium mb-4 text-text-light dark:text-text-dark">Основная информация</h2>
         
         <div class="space-y-4">
           <div>
-            <h3 class="font-medium text-gray-700">Название дела:</h3>
-            <p class="p-2 bg-gray-50 rounded mt-1">
+            <h3 class="font-medium text-text-light dark:text-text-dark">Название дела:</h3>
+            <p class="p-2 bg-surface-light dark:bg-surface-dark rounded mt-1 text-text-light dark:text-text-dark">
               {{ currentCase.title || 'Название отсутствует' }}
             </p>
           </div>
           
           <div>
-            <h3 class="font-medium text-gray-700">Описание:</h3>
-            <p class="p-2 bg-gray-50 rounded mt-1 whitespace-pre-line">
+            <h3 class="font-medium text-text-light dark:text-text-dark">Описание:</h3>
+            <p class="p-2 bg-surface-light dark:bg-surface-dark rounded mt-1 whitespace-pre-line text-text-light dark:text-text-dark">
               {{ currentCase.description || 'Описание отсутствует' }}
             </p>
           </div>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 class="font-medium text-gray-700">Тип дела:</h3>
-              <p class="p-2 bg-gray-50 rounded mt-1">
+              <h3 class="font-medium text-text-light dark:text-text-dark">Тип дела:</h3>
+              <p class="p-2 bg-surface-light dark:bg-surface-dark rounded mt-1 text-text-light dark:text-text-dark">
                 {{ currentCase.case_type || 'Не указан' }}
               </p>
             </div>
             
             <div>
-              <h3 class="font-medium text-gray-700">Статус:</h3>
-              <p class="p-2 bg-gray-50 rounded mt-1">
+              <h3 class="font-medium text-text-light dark:text-text-dark">Статус:</h3>
+              <p class="p-2 bg-surface-light dark:bg-surface-dark rounded mt-1 text-text-light dark:text-text-dark">
                 {{ currentCase.status || 'Не указан' }}
               </p>
             </div>
           </div>
           
           <div>
-            <h3 class="font-medium text-gray-700">Сумма:</h3>
-            <p class="p-2 bg-gray-50 rounded mt-1">
+            <h3 class="font-medium text-text-light dark:text-text-dark">Сумма:</h3>
+            <p class="p-2 bg-surface-light dark:bg-surface-dark rounded mt-1 text-text-light dark:text-text-dark">
               {{ formatAmount(currentCase.amount, currentCase.currency) }}
             </p>
           </div>
           
           <!-- Арбитраж -->
           <div v-if="currentCase.arbitrage_type">
-            <h3 class="font-medium text-gray-700">Информация об арбитраже:</h3>
-            <div class="p-2 bg-gray-50 rounded mt-1 space-y-2">
+            <h3 class="font-medium text-text-light dark:text-text-dark">Информация об арбитраже:</h3>
+            <div class="p-2 bg-surface-light dark:bg-surface-dark rounded mt-1 space-y-2 text-text-light dark:text-text-dark">
               <p><strong>Тип арбитража:</strong> {{ currentCase.arbitrage_type }}</p>
               <p v-if="currentCase.arbitrage_amount">
                 <strong>Сумма арбитража:</strong> {{ formatAmount(currentCase.arbitrage_amount, currentCase.arbitrage_currency) }}
@@ -97,81 +97,81 @@
       
       <!-- Информация об игроке и фонде -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
-          <h2 class="text-lg font-medium mb-4">Игрок</h2>
+        <div class="bg-white dark:bg-background-dark p-6 rounded-lg shadow-sm border border-border-light dark:border-border-dark">
+          <h2 class="text-lg font-medium mb-4 text-text-light dark:text-text-dark">Игрок</h2>
           
           <div v-if="currentCase.player" class="space-y-3">
             <div class="flex items-center">
-              <div class="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-medium mr-3">
+              <div class="w-10 h-10 bg-primary/10 dark:bg-primary-dark/20 text-primary dark:text-primary-dark rounded-full flex items-center justify-center font-medium mr-3">
                 {{ getPlayerInitials(currentCase.player) }}
               </div>
               <div>
-                <div class="font-medium">{{ getPlayerFullName(currentCase.player) }}</div>
-                <div class="text-sm text-gray-500">ID: {{ currentCase.player.id }}</div>
+                <div class="font-medium text-text-light dark:text-text-dark">{{ getPlayerFullName(currentCase.player) }}</div>
+                <div class="text-sm text-text-secondary-light dark:text-text-secondary-dark">ID: {{ currentCase.player.id }}</div>
               </div>
             </div>
             
             <!-- Дополнительная информация об игроке -->
-            <div class="mt-3 pt-3 border-t border-gray-100">
-              <p v-if="currentCase.player.email" class="text-sm text-gray-500">
+            <div class="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+              <p v-if="currentCase.player.email" class="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                 Email: {{ currentCase.player.email }}
               </p>
-              <p v-if="currentCase.player.created_at" class="text-sm text-gray-500">
+              <p v-if="currentCase.player.created_at" class="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                 Зарегистрирован: {{ formatDate(currentCase.player.created_at) }}
               </p>
             </div>
           </div>
-          <div v-else-if="currentCase.player_id" class="text-gray-500">
+          <div v-else-if="currentCase.player_id" class="text-text-secondary-light dark:text-text-secondary-dark">
             <p>ID игрока: {{ currentCase.player_id }}</p>
             <p>Детальная информация об игроке недоступна</p>
           </div>
-          <div v-else class="text-gray-500">
+          <div v-else class="text-text-secondary-light dark:text-text-secondary-dark">
             Информация об игроке недоступна
           </div>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
-          <h2 class="text-lg font-medium mb-4">Фонд</h2>
+        <div class="bg-white dark:bg-background-dark p-6 rounded-lg shadow-sm border border-border-light dark:border-border-dark">
+          <h2 class="text-lg font-medium mb-4 text-text-light dark:text-text-dark">Фонд</h2>
           
           <div v-if="currentCase.fund" class="space-y-3">
-            <div class="font-medium">{{ currentCase.fund.name }}</div>
-            <div class="text-sm text-gray-600">{{ currentCase.fund.description }}</div>
+            <div class="font-medium text-text-light dark:text-text-dark">{{ currentCase.fund.name }}</div>
+            <div class="text-sm text-text-secondary-light dark:text-text-secondary-dark">{{ currentCase.fund.description }}</div>
             
             <!-- Дополнительная информация о фонде -->
-            <div class="mt-3 pt-3 border-t border-gray-100">
-              <p class="text-sm text-gray-500">ID фонда: {{ currentCase.fund.id }}</p>
-              <p class="text-sm text-gray-500" v-if="currentCase.fund.created_at">
+            <div class="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+              <p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">ID фонда: {{ currentCase.fund.id }}</p>
+              <p class="text-sm text-text-secondary-light dark:text-text-secondary-dark" v-if="currentCase.fund.created_at">
                 Создан: {{ formatDate(currentCase.fund.created_at) }}
               </p>
             </div>
           </div>
-          <div v-else-if="currentCase.created_by_fund_id" class="text-gray-500">
+          <div v-else-if="currentCase.created_by_fund_id" class="text-text-secondary-light dark:text-text-secondary-dark">
             <p>ID фонда: {{ currentCase.created_by_fund_id }}</p>
             <p>Детальная информация о фонде недоступна</p>
           </div>
-          <div v-else class="text-gray-500">
+          <div v-else class="text-text-secondary-light dark:text-text-secondary-dark">
             Информация о фонде недоступна
           </div>
         </div>
       </div>
       
       <!-- Отладочная информация -->
-      <div v-if="isDebugMode" class="mt-8 p-4 bg-gray-100 rounded-lg space-y-4">
-        <h3 class="text-lg font-medium mb-2">Отладочная информация (Debug Mode)</h3>
+      <div v-if="isDebugMode" class="mt-8 p-4 bg-surface-light dark:bg-surface-dark rounded-lg space-y-4 border border-border-light dark:border-border-dark">
+        <h3 class="text-lg font-medium mb-2 text-text-light dark:text-text-dark">Отладочная информация (Debug Mode)</h3>
         
         <div>
-          <h4 class="font-medium mb-1">Данные кейса:</h4>
-          <pre class="text-xs overflow-auto p-2 bg-gray-200 rounded">{{ JSON.stringify(currentCase, null, 2) }}</pre>
+          <h4 class="font-medium mb-1 text-text-light dark:text-text-dark">Данные кейса:</h4>
+          <pre class="text-xs overflow-auto p-2 bg-white dark:bg-background-dark rounded text-text-light dark:text-text-dark border border-border-light dark:border-border-dark">{{ JSON.stringify(currentCase, null, 2) }}</pre>
         </div>
       </div>
     </div>
     
-    <div v-else class="bg-white p-6 rounded-lg shadow-sm text-center my-8">
-      <h2 class="text-xl font-medium text-gray-600">Дело не найдено</h2>
-      <p class="mt-2 text-gray-500">Запрошенное дело не существует или было удалено</p>
+    <div v-else class="bg-white dark:bg-background-dark p-6 rounded-lg shadow-sm text-center my-8 border border-border-light dark:border-border-dark">
+      <h2 class="text-xl font-medium text-text-light dark:text-text-dark">Дело не найдено</h2>
+      <p class="mt-2 text-text-secondary-light dark:text-text-secondary-dark">Запрошенное дело не существует или было удалено</p>
       <a 
         href="/cases" 
-        class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        class="mt-4 inline-block px-4 py-2 bg-primary dark:bg-primary-dark text-white rounded hover:bg-primary-600 dark:hover:bg-primary-500"
       >
         Вернуться к списку дел
       </a>

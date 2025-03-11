@@ -1,31 +1,31 @@
 <template>
   <div class="container mx-auto px-4 py-6">
-    <h1 class="text-2xl font-bold mb-6">Панель администратора</h1>
+    <h1 class="text-2xl font-bold mb-6 text-text-light dark:text-text-dark">Панель администратора</h1>
     
     <!-- Панель навигации -->
-    <div class="flex mb-6 border-b">
+    <div class="flex mb-6 border-b border-border-light dark:border-border-dark">
       <button @click="navigateToTab('users')" 
-        :class="['px-4 py-2 mr-2', activeTab === 'users' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        :class="['px-4 py-2 mr-2', activeTab === 'users' ? 'border-b-2 border-primary dark:border-primary-dark text-primary dark:text-primary-dark font-semibold' : 'text-text-secondary-light dark:text-text-secondary-dark']">
         Пользователи
       </button>
       <button @click="navigateToTab('funds')" 
-        :class="['px-4 py-2 mr-2', activeTab === 'funds' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        :class="['px-4 py-2 mr-2', activeTab === 'funds' ? 'border-b-2 border-primary dark:border-primary-dark text-primary dark:text-primary-dark font-semibold' : 'text-text-secondary-light dark:text-text-secondary-dark']">
         Фонды
       </button>
       <button @click="navigateToTab('players')" 
-        :class="['px-4 py-2 mr-2', activeTab === 'players' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        :class="['px-4 py-2 mr-2', activeTab === 'players' ? 'border-b-2 border-primary dark:border-primary-dark text-primary dark:text-primary-dark font-semibold' : 'text-text-secondary-light dark:text-text-secondary-dark']">
         Игроки
       </button>
       <button @click="navigateToTab('cases')" 
-        :class="['px-4 py-2 mr-2', activeTab === 'cases' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        :class="['px-4 py-2 mr-2', activeTab === 'cases' ? 'border-b-2 border-primary dark:border-primary-dark text-primary dark:text-primary-dark font-semibold' : 'text-text-secondary-light dark:text-text-secondary-dark']">
         Кейсы
       </button>
       <button @click="navigateToTab('poker-rooms')" 
-        :class="['px-4 py-2 mr-2', activeTab === 'poker-rooms' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        :class="['px-4 py-2 mr-2', activeTab === 'poker-rooms' ? 'border-b-2 border-primary dark:border-primary-dark text-primary dark:text-primary-dark font-semibold' : 'text-text-secondary-light dark:text-text-secondary-dark']">
         Покерные румы
       </button>
       <button @click="navigateToTab('search-index')" 
-        :class="['px-4 py-2 mr-2', activeTab === 'search-index' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-gray-600']">
+        :class="['px-4 py-2 mr-2', activeTab === 'search-index' ? 'border-b-2 border-primary dark:border-primary-dark text-primary dark:text-primary-dark font-semibold' : 'text-text-secondary-light dark:text-text-secondary-dark']">
         Поисковый индекс
       </button>
     </div>
