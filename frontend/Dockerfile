@@ -12,8 +12,8 @@ RUN npm install
 # Копируем исходный код
 COPY . .
 
-# Пропускаем проверку типов и запускаем только vite build
-RUN sed -i 's/vue-tsc --noEmit && vite build/vite build/g' package.json && npm run build
+# Запускаем сборку
+RUN npm run build
 
 # Этап запуска
 FROM nginx:stable-alpine
