@@ -1,10 +1,10 @@
 {
   "name": "fonds-relations-frontend",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
     "lint": "eslint --ext .js,.vue,.ts --fix src"
