@@ -194,8 +194,8 @@
       </template>
     </Modal>
 
-    <!-- Футер с версией -->
-    <div class="mt-8 pt-4 border-t border-border-light dark:border-border-dark text-right">
+    <!-- Компонент информации о версии в правом нижнем углу -->
+    <div class="version-info-wrapper">
       <VersionInfo :version="appVersion" :backend-version="backendVersion" />
     </div>
   </div>
