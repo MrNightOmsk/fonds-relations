@@ -214,17 +214,21 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 0.375rem;
-  background-color: rgba(var(--color-primary-rgb), 0.1);
-  color: var(--color-primary);
+  background-color: #00a3ff;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .version-button:hover {
-  background-color: rgba(var(--color-primary-rgb), 0.2);
+  background-color: #0084ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .notification-badge {

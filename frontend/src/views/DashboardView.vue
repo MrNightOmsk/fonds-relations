@@ -8,11 +8,6 @@
       </p>
     </div>
 
-    <!-- Версия системы и чанджлог -->
-    <div class="version-info-wrapper">
-      <VersionInfo :version="appVersion" :backend-version="backendVersion" />
-    </div>
-
     <!-- Блок поиска -->
     <div class="search-block bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg p-6 mb-8 border border-border-light dark:border-border-dark">
       <h2 class="text-xl font-semibold text-text-light dark:text-text-dark mb-4">Умный поиск</h2>
@@ -198,6 +193,11 @@
         <Button variant="primary" @click="createNewCase">Создать</Button>
       </template>
     </Modal>
+
+    <!-- Футер с версией -->
+    <div class="mt-8 pt-4 border-t border-border-light dark:border-border-dark text-right">
+      <VersionInfo :version="appVersion" :backend-version="backendVersion" />
+    </div>
   </div>
 </template>
 
@@ -215,8 +215,13 @@ import Select from '@/components/ui/Select.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 
 import UnifiedSearch from '@/components/search/UnifiedSearch.vue';
+import VersionInfo from '@/components/VersionInfo.vue';
 
 const router = useRouter();
+
+// Версии приложения
+const appVersion = '0.3.1';
+const backendVersion = '0.3.13';
 
 // Иконки для статистики
 const IconUsers = {
@@ -361,7 +366,7 @@ onMounted(() => {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
-  z-index: 10;
+  z-index: 50;
 }
 
 @media (max-width: 768px) {
