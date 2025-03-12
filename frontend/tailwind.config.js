@@ -34,15 +34,15 @@ module.exports = {
           light: '#fbbf24',
         },
         background: {
-          light: '#ffffff',
+          light: '#f4f5f7',
           dark: '#1e1e2e',
         },
         surface: {
-          light: '#f3f4f6',
+          light: '#ffffff',
           dark: '#252536',
         },
         text: {
-          light: '#111827',
+          light: '#1e293b',
           dark: '#f8f9fa',
           secondary: {
             light: '#4b5563',
@@ -50,7 +50,7 @@ module.exports = {
           }
         },
         border: {
-          light: '#d1d5db',
+          light: '#e2e8f0',
           dark: '#374151',
         },
       },
@@ -58,7 +58,7 @@ module.exports = {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        card: '0 8px 20px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04)',
         'card-dark': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.18)',
       },
       transitionProperty: {
@@ -79,10 +79,10 @@ module.exports = {
           "primary": "#0891b2",
           "secondary": "#10b981",
           "accent": "#0ea5e9",
-          "neutral": "#111827",
+          "neutral": "#1e293b",
           "base-100": "#ffffff",
-          "base-200": "#f3f4f6",
-          "base-300": "#e5e7eb",
+          "base-200": "#f4f5f7",
+          "base-300": "#e2e8f0",
           "info": "#3abff8",
           "success": "#10b981",
           "warning": "#f59e0b",

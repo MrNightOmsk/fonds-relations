@@ -30,6 +30,8 @@
             <span v-if="isDarkMode" class="text-text-dark">🌞</span>
             <span v-else class="text-text-light">🌙</span>
           </button>
+          <!-- Переключатель вариантов светлой темы -->
+          <ThemeSwitcher v-if="!isDarkMode" />
           <span class="hidden md:inline text-sm text-text-light dark:text-text-dark">{{ userName }}</span>
           <button 
             @click="logout"
@@ -92,6 +94,7 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -111,6 +114,11 @@ const navLinks = computed(() => {
   
   if (isAdmin.value) {
     links.push({ to: '/admin', text: 'Администрирование' });
+  }
+  
+  // Добавляем ссылку на демо-тему (только для разработки)
+  if (import.meta.env.DEV) {
+    links.push({ to: '/theme-demo', text: 'Темы' });
   }
   
   return links;
@@ -181,6 +189,13 @@ const logout = () => {
 
 :root {
   font-family: 'Inter', sans-serif;
+  
+  /* Базовые цвета для светлой темы */
+  --color-background-light: #f4f5f7;
+  --color-surface-light: #ffffff;
+  --color-border-light: #e2e8f0;
+  --color-text-light: #1e293b;
+  --color-text-secondary-light: #4b5563;
 }
 
 /* Темная тема */

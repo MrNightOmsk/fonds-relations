@@ -1,6 +1,8 @@
 // @ts-ignore
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+// @ts-ignore
+import { RouteRecordRaw } from 'vue-router';
 
 // Ленивая загрузка компонентов для оптимизации
 const Login = () => import('@/views/LoginView.vue');
@@ -15,9 +17,20 @@ const PlayersList = () => import('@/views/players/PlayersListView.vue');
 const CaseDetail = () => import('@/views/cases/CaseDetail.vue');
 const CasesList = () => import('@/views/cases/CasesListView.vue');
 const SearchIndexManagement = () => import('@/views/admin/SearchIndexView.vue');
+const ThemeDemo = () => import('@/views/ThemeDemo.vue');
 
-// @ts-ignore
-const routes = [
+// Определим тип маршрута самостоятельно, если RouteRecordRaw недоступен
+type AppRouteRecordRaw = {
+  path: string;
+  name?: string;
+  component?: any;
+  redirect?: string;
+  children?: AppRouteRecordRaw[];
+  meta?: Record<string, any>;
+  props?: boolean | Record<string, any> | Function;
+};
+
+const routes: AppRouteRecordRaw[] = [
   {
     path: '/',
     redirect: '/dashboard'
@@ -67,6 +80,13 @@ const routes = [
     props: true
   },
   {
+    path: '/cases/:id/edit',
+    name: 'CaseEdit',
+    component: () => import('@/views/cases/CaseEditView.vue'),
+    meta: { requiresAuth: true },
+    props: true
+  },
+  {
     path: '/admin',
     component: Admin,
     meta: { requiresAuth: true, requiresAdmin: true },
@@ -100,6 +120,24 @@ const routes = [
         meta: { requiresAuth: true, requiresAdmin: true }
       }
     ]
+  },
+  {
+    path: '/theme-demo',
+    name: 'ThemeDemo',
+    component: ThemeDemo,
+    meta: {
+      title: 'Демонстрация тем',
+      requiresAuth: false // Для удобства разработки доступна без авторизации
+    }
+  },
+  {
+    path: '/ui-components',
+    name: 'UIComponents',
+    component: () => import('../views/UIComponentsView.vue'),
+    meta: {
+      title: 'UI Компоненты',
+      requiresAuth: false // Для удобства разработки доступна без авторизации
+    }
   },
   {
     path: '/:pathMatch(.*)*',
