@@ -448,6 +448,21 @@ export function useCasesApi() {
         cache.push(caseId);
         localStorage.setItem('inaccessibleCases', JSON.stringify(cache));
       }
+    },
+
+    /**
+     * Получить типы кейсов
+     */
+    async getCaseTypes(): Promise<any[]> {
+      try {
+        // Используем правильный параметр для запроса всех типов кейсов
+        const response = await api.get('/case-types/?active_only=false');
+        console.log('Полученные типы кейсов от API:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('Ошибка при получении типов кейсов:', error);
+        return [];
+      }
     }
   };
 } 
