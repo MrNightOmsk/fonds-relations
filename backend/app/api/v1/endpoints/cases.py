@@ -12,51 +12,93 @@ from app.api import deps
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.CaseExtended])
+@router.get("/", response_model=dict)
 def read_cases(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    page: int = 1,
     player_id: Optional[str] = None,
+    status: Optional[str] = None,
+    case_type_id: Optional[str] = None,
+    search: Optional[str] = None,
+    period: Optional[str] = None,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Retrieve cases.
+    Retrieve cases with filtering.
+    
+    - **skip**: Number of cases to skip
+    - **limit**: Maximum number of cases to return
+    - **page**: Page number for pagination
+    - **player_id**: Filter cases by player ID
+    - **status**: Filter cases by status
+    - **case_type_id**: Filter cases by case type ID
+    - **search**: Search in title or description
+    - **period**: Filter by period (today, week, month, year)
     """
     import logging
     logger = logging.getLogger("app")
     
     try:
+        # Пересчитываем skip на основе page и limit для пагинации
+        if page > 1:
+            skip = (page - 1) * limit
+        
+        # Обработка фильтров
+        filters = {}
+        
         if player_id:
             try:
-                player_id_uuid = uuid.UUID(str(player_id))
-                cases_db = crud.case.get_multi_by_player(
-                    db=db, player_id=player_id_uuid, skip=skip, limit=limit
-                )
-                # Преобразуем случаи в расширенный формат с данными игрока и фонда
-                result = []
-                for case in cases_db:
-                    # Создаем объект Pydantic из ORM-объекта
-                    case_dict = schemas.Case.from_orm(case).dict()
-                    
-                    # Получаем данные игрока
-                    player = crud.player.get(db=db, id=case.player_id)
-                    if player:
-                        case_dict["player"] = schemas.Player.from_orm(player)
-                    
-                    # Получаем данные фонда
-                    fund = crud.fund.get(db=db, id=case.created_by_fund_id)
-                    if fund:
-                        case_dict["fund"] = schemas.Fund.from_orm(fund)
-                    
-                    # Создаем и добавляем расширенный объект
-                    result.append(schemas.CaseExtended(**case_dict))
-                
-                return result
+                filters["player_id"] = uuid.UUID(str(player_id))
             except ValueError:
-                raise HTTPException(status_code=422, detail="Invalid player ID format")
-        else:
-            cases_db = crud.case.get_multi(db, skip=skip, limit=limit)
+                logger.warning(f"Invalid player_id format: {player_id}")
+        
+        if status:
+            filters["status"] = status
+            
+        if case_type_id:
+            try:
+                filters["case_type_id"] = uuid.UUID(str(case_type_id))
+            except ValueError:
+                logger.warning(f"Invalid case_type_id format: {case_type_id}")
+        
+        # Логика для периода
+        if period:
+            from datetime import datetime, timedelta
+            now = datetime.now()
+            
+            if period == "today":
+                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                filters["created_at_start"] = today_start
+            elif period == "week":
+                week_start = now - timedelta(days=now.weekday())
+                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                filters["created_at_start"] = week_start
+            elif period == "month":
+                month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                filters["created_at_start"] = month_start
+            elif period == "year":
+                year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                filters["created_at_start"] = year_start
+            else:
+                logger.warning(f"Unknown period filter: {period}")
+        
+        # Отладочная информация
+        logger.info(f"Applying filters: {filters}")
+        logger.info(f"Search query: {search}")
+        logger.info(f"Pagination: page={page}, limit={limit}, skip={skip}")
+            
+        # Получаем данные с применением всех фильтров
+        try:
+            total, cases_db = crud.case.get_filtered(
+                db=db, 
+                skip=skip, 
+                limit=limit, 
+                filters=filters,
+                search=search
+            )
+            
             # Преобразуем случаи в расширенный формат с данными игрока и фонда
             result = []
             for case in cases_db:
@@ -64,19 +106,40 @@ def read_cases(
                 case_dict = schemas.Case.from_orm(case).dict()
                 
                 # Получаем данные игрока
-                player = crud.player.get(db=db, id=case.player_id)
+                player = crud.player.get(db=db, id=case.player_id) if case.player_id else None
                 if player:
                     case_dict["player"] = schemas.Player.from_orm(player)
+                    case_dict["player_name"] = player.full_name
                 
                 # Получаем данные фонда
-                fund = crud.fund.get(db=db, id=case.created_by_fund_id)
+                fund = crud.fund.get(db=db, id=case.created_by_fund_id) if case.created_by_fund_id else None
                 if fund:
                     case_dict["fund"] = schemas.Fund.from_orm(fund)
+                    case_dict["created_by_fund_name"] = fund.name
+                
+                # Получаем данные пользователя (создателя)
+                user = crud.user.get(db=db, id=case.created_by_user_id) if case.created_by_user_id else None
+                if user:
+                    case_dict["created_by_user_name"] = user.full_name
+                
+                # Получаем данные типа кейса
+                case_type = crud.case_type.get(db=db, id=case.case_type_id) if case.case_type_id else None
+                if case_type:
+                    case_dict["case_type_name"] = case_type.name
                 
                 # Создаем и добавляем расширенный объект
                 result.append(schemas.CaseExtended(**case_dict))
+                
+            # Возвращаем результаты в формате, совместимом с фронтендом
+            return {
+                "results": result,
+                "count": total
+            }
+                
+        except Exception as e:
+            logger.error(f"Database query error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
             
-            return result
     except Exception as e:
         logger.error(f"Error processing cases request: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -235,7 +298,7 @@ def read_case(
         case_dict = schemas.Case.from_orm(case).dict()
             
         # Получаем данные игрока
-        player = crud.player.get(db=db, id=case.player_id)
+        player = crud.player.get(db=db, id=case.player_id) if case.player_id else None
         if player:
             case_dict["player"] = schemas.Player.from_orm(player)
         

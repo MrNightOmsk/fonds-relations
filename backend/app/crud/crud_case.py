@@ -163,5 +163,87 @@ class CRUDCase(CRUDBase[Case, CaseCreate, CaseUpdate]):
             .all()
         )
 
+    def get_filtered(
+        self, 
+        db: Session, 
+        *, 
+        filters: Dict[str, Any] = None,
+        search: Optional[str] = None,
+        skip: int = 0, 
+        limit: int = 100
+    ) -> tuple[int, List[Case]]:
+        """
+        Получение кейсов с применением различных фильтров и поиска.
+        
+        Args:
+            db: сессия базы данных
+            filters: словарь фильтров в формате {имя_поля: значение}
+            search: строка для поиска в заголовке и описании
+            skip: смещение для пагинации
+            limit: максимальное количество результатов
+            
+        Returns:
+            tuple: (общее количество записей, список кейсов)
+        """
+        import logging
+        logger = logging.getLogger("app")
+        
+        # Создаём базовый запрос
+        query = db.query(self.model)
+        
+        # Применяем фильтры
+        if filters:
+            logger.info(f"Applying filters: {filters}")
+            
+            # Фильтр по ID игрока
+            if "player_id" in filters:
+                query = query.filter(Case.player_id == filters["player_id"])
+            
+            # Фильтр по статусу
+            if "status" in filters:
+                query = query.filter(Case.status == filters["status"])
+            
+            # Фильтр по ID типа кейса
+            if "case_type_id" in filters:
+                query = query.filter(Case.case_type_id == filters["case_type_id"])
+            
+            # Фильтр по дате начала
+            if "created_at_start" in filters:
+                query = query.filter(Case.created_at >= filters["created_at_start"])
+            
+            # Фильтр по дате окончания
+            if "created_at_end" in filters:
+                query = query.filter(Case.created_at <= filters["created_at_end"])
+                
+            # Фильтр по ID фонда
+            if "fund_id" in filters:
+                query = query.filter(Case.created_by_fund_id == filters["fund_id"])
+                
+            # Фильтр по ID пользователя, создавшего кейс
+            if "user_id" in filters:
+                query = query.filter(Case.created_by_user_id == filters["user_id"])
+                
+            # Фильтр по арбитражу (если указано True или False)
+            if "is_arbitrage" in filters:
+                query = query.filter(Case.is_arbitrage == filters["is_arbitrage"])
+                
+        # Применяем поиск по заголовку и описанию
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                (Case.title.ilike(search_term)) | 
+                (Case.description.ilike(search_term))
+            )
+        
+        # Получаем общее количество без учета пагинации
+        total_count = query.count()
+        
+        # Применяем пагинацию и получаем результаты
+        results = query.order_by(Case.created_at.desc()).offset(skip).limit(limit).all()
+        
+        logger.info(f"Total count: {total_count}, returned results: {len(results)}")
+        
+        return total_count, results
+
 
 case = CRUDCase(Case) 
