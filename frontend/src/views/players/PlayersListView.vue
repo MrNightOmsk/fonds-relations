@@ -4,7 +4,7 @@
       <h1 class="text-2xl font-bold text-text-light dark:text-text-dark">Список игроков</h1>
       <router-link 
         v-if="userCanCreatePlayers" 
-        to="/players/create" 
+        to="/players/new" 
         class="mt-2 md:mt-0 btn-primary"
       >
         Добавить игрока
@@ -238,10 +238,8 @@ const filteredPlayers = computed(() => {
     });
   }
   
-  // Если не администратор, то показываем только игроков из фонда пользователя
-  if (!authStore.isAdmin && authStore.user?.fund_id) {
-    result = result.filter(p => p.created_by_fund_id === authStore.user?.fund_id);
-  }
+  // Удаляем фильтрацию по фонду - все менеджеры должны видеть всех игроков
+  // в соответствии с новыми требованиями
   
   return result;
 });
@@ -260,7 +258,7 @@ const totalPages = computed(() => {
 
 // Номера страниц для пагинации
 const paginationPages = computed(() => {
-  const pages = [];
+  const pages: number[] = [];
   const maxVisiblePages = 5;
   let startPage = Math.max(1, currentPage.value - Math.floor(maxVisiblePages / 2));
   let endPage = Math.min(totalPages.value, startPage + maxVisiblePages - 1);
