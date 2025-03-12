@@ -1,564 +1,377 @@
 <template>
-  <div class="dashboard">
-    <!-- Секция поиска -->
-    <div class="search-section mb-6">
-      <h2 class="text-lg font-medium mb-2">Поиск</h2>
-      <div class="border p-4 bg-blue-50 rounded-lg">
-        <p class="text-sm mb-2">Работает поиск по словам: "иван", "петр", "скам", "долг"</p>
-        <UnifiedSearch @select="handleSearchResultSelect" />
+  <div class="dashboard-container">
+    <!-- Главный заголовок и описание -->
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-bold text-text-light dark:text-text-dark mb-2">Система Fonds Relations</h1>
+      <p class="text-text-secondary-light dark:text-text-secondary-dark max-w-2xl mx-auto">
+        Единая база данных для обмена информацией о недобросовестных игроках между покерными фондами
+      </p>
+    </div>
+
+    <!-- Версия системы и чанджлог -->
+    <div class="version-info-wrapper">
+      <VersionInfo :version="appVersion" :backend-version="backendVersion" />
+    </div>
+
+    <!-- Блок поиска -->
+    <div class="search-block bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg p-6 mb-8 border border-border-light dark:border-border-dark">
+      <h2 class="text-xl font-semibold text-text-light dark:text-text-dark mb-4">Умный поиск</h2>
+      <div class="mb-4">
+        <UnifiedSearch ref="searchComponent" />
+      </div>
+      <div class="flex flex-wrap gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+        <span>Популярные запросы:</span>
+        <button @click="setSearchQuery('мультиаккаунт')" class="px-2 py-1 bg-background-light dark:bg-background-dark rounded-md hover:bg-primary/10 transition-colors">мультиаккаунт</button>
+        <button @click="setSearchQuery('сговор')" class="px-2 py-1 bg-background-light dark:bg-background-dark rounded-md hover:bg-primary/10 transition-colors">сговор</button>
+        <button @click="setSearchQuery('ПО')" class="px-2 py-1 bg-background-light dark:bg-background-dark rounded-md hover:bg-primary/10 transition-colors">запрещенное ПО</button>
       </div>
     </div>
-    
-    <!-- Секция быстрых действий -->
-    <div class="quick-actions mb-6">
-      <h2 class="text-lg font-medium mb-2">Быстрые действия</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <button @click="showCreateCaseModal = true" class="action-btn bg-blue-600 text-white p-4 rounded-lg flex items-center">
-          <span class="icon mr-2 text-xl">+</span>
-          <span>Создать кейс</span>
-        </button>
-        <button @click="navigateTo('/cases')" class="action-btn bg-green-600 text-white p-4 rounded-lg flex items-center">
-          <span class="icon mr-2 text-xl">📁</span>
-          <span>Мои кейсы</span>
-        </button>
-        <button @click="navigateTo('/players')" class="action-btn bg-purple-600 text-white p-4 rounded-lg flex items-center">
-          <span class="icon mr-2 text-xl">👤</span>
-          <span>Список игроков</span>
-        </button>
-        <button @click="navigateTo('/audit')" class="action-btn bg-orange-600 text-white p-4 rounded-lg flex items-center">
-          <span class="icon mr-2 text-xl">🔔</span>
-          <span>Активность</span>
-        </button>
-      </div>
-    </div>
-    
-    <!-- Административные функции (только для админов) -->
-    <div v-if="isAdmin" class="admin-section mb-6">
-      <h2 class="text-lg font-medium mb-2">Административные функции</h2>
-      <div class="border p-4 bg-red-50 rounded-lg">
-        <div class="flex flex-col space-y-3">
-          <div>
-            <p class="text-sm text-gray-700 mb-2">
-              Дополнительные функции администрирования доступны в 
-              <router-link to="/admin" class="text-blue-600 hover:text-blue-800 underline">
-                панели администратора
-              </router-link>.
+
+    <!-- Блоки быстрых действий -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <!-- Создание нового игрока -->
+      <div class="action-block bg-surface-light dark:bg-surface-dark rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border border-border-light/40 dark:border-border-dark">
+        <div class="flex items-start">
+          <div class="mr-4 p-3 rounded-full bg-primary/10 text-primary dark:text-primary-dark">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-text-light dark:text-text-dark mb-2">Добавить нового игрока</h3>
+            <p class="text-text-secondary-light dark:text-text-secondary-dark mb-4">
+              Создайте профиль нового игрока с полной информацией о нём
             </p>
+            <Button 
+              variant="primary" 
+              @click="navigateTo('/players/new')"
+              class="w-full md:w-auto"
+            >
+              Создать игрока
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Создание нового кейса -->
+      <div class="action-block bg-surface-light dark:bg-surface-dark rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border border-border-light/40 dark:border-border-dark">
+        <div class="flex items-start">
+          <div class="mr-4 p-3 rounded-full bg-warning/10 text-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-text-light dark:text-text-dark mb-2">Создать новый кейс</h3>
+            <p class="text-text-secondary-light dark:text-text-secondary-dark mb-4">
+              Зафиксируйте случай нарушения и прикрепите доказательства
+            </p>
+            <Button 
+              variant="warning" 
+              @click="showNewCaseModal = true"
+              class="w-full md:w-auto"
+            >
+              Создать кейс
+            </Button>
           </div>
         </div>
       </div>
     </div>
-    
-    <!-- Статистика -->
-    <div class="stats-section mb-6">
-      <h2 class="text-lg font-medium mb-2">Статистика</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="stat-card bg-white p-4 border rounded-lg">
-          <p class="text-gray-500 text-sm">Кейсов в работе</p>
-          <p class="text-2xl font-bold">{{ stats.cases ? stats.cases.activeCases || 0 : 0 }}</p>
+
+    <!-- Статистика и информация -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Статистика -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md p-6 border border-border-light/40 dark:border-border-dark">
+        <h3 class="text-lg font-semibold text-text-light dark:text-text-dark mb-4">Статистика</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div v-for="(stat, index) in statistics" :key="index" class="stat-item p-3 rounded-lg" :class="stat.bgColor">
+            <div class="flex items-center">
+              <component :is="stat.icon" class="h-6 w-6 mr-3" :class="stat.iconColor" />
+              <div>
+                <div class="text-lg font-bold text-text-light dark:text-text-dark">{{ stat.value }}</div>
+                <div class="text-xs text-text-secondary-light dark:text-text-secondary-dark">{{ stat.label }}</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="stat-card bg-white p-4 border rounded-lg">
-          <p class="text-gray-500 text-sm">Всего игроков</p>
-          <p class="text-2xl font-bold">{{ stats.players ? stats.players.total || 0 : 0 }}</p>
+      </div>
+
+      <!-- Недавние действия -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md p-6 border border-border-light/40 dark:border-border-dark">
+        <h3 class="text-lg font-semibold text-text-light dark:text-text-dark mb-4">Недавние действия</h3>
+        <div v-if="isLoading">
+          <div v-for="i in 3" :key="i" class="mb-3">
+            <Skeleton height="24px" class="mb-1" />
+            <Skeleton width="60%" height="16px" />
+          </div>
         </div>
-        <div class="stat-card bg-white p-4 border rounded-lg">
-          <p class="text-gray-500 text-sm">Действий за неделю</p>
-          <p class="text-2xl font-bold">{{ stats.weeklyActions || 0 }}</p>
+        <div v-else-if="recentActions.length === 0" class="py-4 text-center text-text-secondary-light dark:text-text-secondary-dark">
+          Нет недавних действий
+        </div>
+        <div v-else class="space-y-3">
+          <div v-for="(action, index) in recentActions.slice(0, 3)" :key="index" class="p-3 rounded-lg bg-background-light dark:bg-background-dark">
+            <div class="flex items-center">
+              <Avatar :text="action.user" size="sm" class="mr-3" />
+              <div>
+                <p class="text-sm text-text-light dark:text-text-dark">
+                  <span class="font-medium">{{ action.user }}</span> 
+                  {{ action.action }}
+                  <span class="font-medium">{{ action.target }}</span>
+                </p>
+                <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                  {{ action.time }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 text-center">
+          <Button variant="outline" size="sm" @click="navigateTo('/activity')">Показать все</Button>
+        </div>
+      </div>
+
+      <!-- Мои кейсы -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md p-6 border border-border-light/40 dark:border-border-dark">
+        <h3 class="text-lg font-semibold text-text-light dark:text-text-dark mb-4">Мои активные кейсы</h3>
+        <div v-if="isLoading">
+          <div v-for="i in 3" :key="i" class="mb-3">
+            <Skeleton height="24px" class="mb-1" />
+            <Skeleton width="80%" height="16px" />
+          </div>
+        </div>
+        <div v-else-if="myCases.length === 0" class="py-4 text-center text-text-secondary-light dark:text-text-secondary-dark">
+          У вас нет активных кейсов
+        </div>
+        <div v-else class="space-y-3">
+          <div v-for="(item, index) in myCases.slice(0, 3)" :key="index" class="p-3 rounded-lg bg-background-light dark:bg-background-dark">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-medium text-text-light dark:text-text-dark">{{ item.title }}</h4>
+                <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">{{ item.description }}</p>
+              </div>
+              <Badge :variant="item.status === 'active' ? 'primary' : item.status === 'resolved' ? 'success' : 'warning'">
+                {{ item.status === 'active' ? 'Активен' : item.status === 'resolved' ? 'Решен' : 'В ожидании' }}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 text-center">
+          <Button variant="outline" size="sm" @click="navigateTo('/cases')">Все кейсы</Button>
         </div>
       </div>
     </div>
-    
-    <!-- Последние действия -->
-    <div class="latest-actions mb-6">
-      <h2 class="text-lg font-medium mb-2">Последние действия</h2>
-      <div class="border rounded-lg overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Время</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Пользователь</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действие</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="!activities || activities.length === 0">
-              <td colspan="3" class="px-4 py-2 text-sm text-gray-500 text-center">Нет недавних действий</td>
-            </tr>
-            <tr v-for="action in activities || []" :key="action.id">
-              <td class="px-4 py-2 text-sm text-gray-500">{{ formatDateTime(action.timestamp || action.created_at) }}</td>
-              <td class="px-4 py-2 text-sm text-gray-500">{{ action.user || 'Система' }}</td>
-              <td class="px-4 py-2 text-sm text-gray-900">{{ action.description }}</td>
-            </tr>
-          </tbody>
-        </table>
+
+    <!-- Модальное окно для создания нового кейса -->
+    <Modal 
+      :is-open="showNewCaseModal" 
+      title="Создать новый кейс" 
+      @close="showNewCaseModal = false"
+    >
+      <div class="space-y-4">
+        <Input 
+          v-model="newCase.title" 
+          label="Заголовок" 
+          placeholder="Введите заголовок кейса" 
+          required 
+        />
+        
+        <Input 
+          v-model="newCase.description" 
+          label="Описание" 
+          placeholder="Введите описание кейса" 
+          type="textarea" 
+        />
+        
+        <Select 
+          v-model="newCase.priority" 
+          label="Приоритет" 
+          :options="[
+            { value: 'low', label: 'Низкий' },
+            { value: 'medium', label: 'Средний' },
+            { value: 'high', label: 'Высокий' }
+          ]"
+        />
       </div>
-    </div>
-    
-    <!-- Модальное окно создания кейса -->
-    <CreateCaseModal 
-      v-if="showCreateCaseModal" 
-      @close="showCreateCaseModal = false" 
-      @created="handleCaseCreated"
-    />
+      
+      <template #footer>
+        <Button variant="outline" @click="showNewCaseModal = false">Отмена</Button>
+        <Button variant="primary" @click="createNewCase">Создать</Button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import { useSearchApi } from '@/api/search';
+
+import Card from '@/components/ui/Card.vue';
+import Button from '@/components/ui/Button.vue';
+import Badge from '@/components/ui/Badge.vue';
+import Avatar from '@/components/ui/Avatar.vue';
+import Modal from '@/components/ui/Modal.vue';
+import Input from '@/components/ui/Input.vue';
+import Select from '@/components/ui/Select.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
+
 import UnifiedSearch from '@/components/search/UnifiedSearch.vue';
-import CreateCaseModal from '@/components/case/CreateCaseModal.vue';
-
-// Определение типа для статистики
-interface DashboardStats {
-  players?: {
-    total: number;
-  },
-  cases?: {
-    total: number;
-    open: number;
-    in_progress: number;
-    closed: number;
-    resolved: number;
-    activeCases?: number;
-  },
-  weeklyActions?: number;
-}
-
-// Расширенный интерфейс для ответа API кейсов
-interface CaseResponse {
-  id: string;
-  title: string;
-  status: string;
-  player_name?: string;
-  player_id?: string;
-  player?: {
-    id: string;
-    full_name: string;
-  };
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Case {
-  id: string;
-  title: string;
-  status: string;
-  player_name?: string;
-  player_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Activity {
-  id: string;
-  description: string;
-  created_at: string;
-  timestamp?: string;
-  user?: string;
-}
 
 const router = useRouter();
-const authStore = useAuthStore();
-const searchApi = useSearchApi();
-const loading = ref(true);
-const showCreateCaseModal = ref(false);
 
-// Статистика
-const stats = ref<DashboardStats>({
-  players: { total: 0 },
-  cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0, activeCases: 0 },
-  weeklyActions: 0
-});
-
-// Последние кейсы
-const recentCases = ref<Case[]>([]);
-
-// Активности
-const activities = ref<Activity[]>([]);
-
-// Вспомогательные вычисляемые свойства
-const isAdmin = computed(() => {
-  return authStore.user && authStore.user.role === 'admin';
-});
-
-// Обработчики событий
-const handleSearchResultSelect = (result: any) => {
-  console.log('Выбран результат поиска:', result);
-  // Навигация осуществляется внутри компонента UnifiedSearch
+// Иконки для статистики
+const IconUsers = {
+  template: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>`
 };
 
+const IconCases = {
+  template: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>`
+};
+
+const IconComments = {
+  template: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+  </svg>`
+};
+
+const IconResolved = {
+  template: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>`
+};
+
+// Состояние загрузки
+const isLoading = ref(true);
+
+// Статистика
+const statistics = ref([
+  { label: 'Всего игроков', value: '1,254', icon: IconUsers, bgColor: 'bg-primary/10', iconColor: 'text-primary dark:text-primary-dark' },
+  { label: 'Активные кейсы', value: '42', icon: IconCases, bgColor: 'bg-warning/10', iconColor: 'text-warning' },
+  { label: 'Комментарии', value: '891', icon: IconComments, bgColor: 'bg-secondary/10', iconColor: 'text-secondary dark:text-secondary' },
+  { label: 'Решенные кейсы', value: '156', icon: IconResolved, bgColor: 'bg-success/10', iconColor: 'text-success' }
+]);
+
+// Недавние действия
+const recentActions = ref([
+  { user: 'Иван Петров', action: 'добавил комментарий к кейсу', target: 'Подозрение на мультиаккаунт', time: '2 часа назад' },
+  { user: 'Анна Смирнова', action: 'создала новый кейс', target: 'Подозрение на сговор', time: '4 часа назад' },
+  { user: 'Дмитрий Иванов', action: 'обновил статус кейса', target: 'Подозрение на использование ПО', time: '6 часов назад' },
+  { user: 'Елена Козлова', action: 'добавила доказательство к кейсу', target: 'Подозрение на мультиаккаунт', time: '1 день назад' },
+  { user: 'Сергей Сидоров', action: 'закрыл кейс', target: 'Подозрение на сговор', time: '2 дня назад' }
+]);
+
+// Мои кейсы
+const myCases = ref([
+  { 
+    title: 'Подозрение на мультиаккаунт', 
+    description: 'Игрок использует несколько аккаунтов на одном устройстве', 
+    status: 'active' 
+  },
+  { 
+    title: 'Подозрение на сговор', 
+    description: 'Группа игроков координирует свои действия для получения преимущества', 
+    status: 'pending' 
+  },
+  { 
+    title: 'Использование запрещенного ПО', 
+    description: 'Игрок использует программное обеспечение для анализа игры', 
+    status: 'resolved' 
+  }
+]);
+
+// Модальное окно для создания нового кейса
+const showNewCaseModal = ref(false);
+const newCase = ref({
+  title: '',
+  description: '',
+  priority: 'medium'
+});
+
+// Функция для установки поискового запроса
+const searchComponent = ref<InstanceType<typeof UnifiedSearch> | null>(null);
+
+const setSearchQuery = (query: string) => {
+  if (searchComponent.value) {
+    // Устанавливаем значение в компоненте поиска
+    searchComponent.value.searchQuery = query;
+    // Вызываем поиск
+    searchComponent.value.debouncedSearch();
+  }
+};
+
+// Навигация
 const navigateTo = (path: string) => {
   router.push(path);
 };
 
-const handleCaseCreated = (newCase: Case) => {
-  showCreateCaseModal.value = false;
+// Создание нового кейса
+const createNewCase = () => {
+  // Здесь будет логика создания нового кейса
+  console.log('Создание нового кейса:', newCase.value);
   
-  // Обновляем список последних кейсов
-  recentCases.value.unshift(newCase);
-  if (recentCases.value.length > 5) {
-    recentCases.value.pop();
-  }
-  
-  // Обновляем статистику
-  if (stats.value.cases) {
-    stats.value.cases.total++;
-    if (stats.value.cases.activeCases !== undefined) {
-      stats.value.cases.activeCases++;
-    }
-  }
-  
-  // Добавляем активность
-  activities.value.unshift({
-    id: Date.now().toString(),
-    description: `Создан новый кейс: ${newCase.title}`,
-    created_at: new Date().toISOString(),
-    user: authStore.user?.username || 'Пользователь'
+  // Добавляем новый кейс в список
+  myCases.value.unshift({
+    title: newCase.value.title,
+    description: newCase.value.description,
+    status: 'active'
   });
-  if (activities.value.length > 5) {
-    activities.value.pop();
-  }
-};
-
-// Вспомогательные функции
-const formatDate = (dateString?: string): string => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleString('ru-RU', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const getStatusText = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    'open': 'Открыт',
-    'in_progress': 'В работе',
-    'resolved': 'Решён',
-    'closed': 'Закрыт'
-  };
-  return statusMap[status] || status;
-};
-
-const getStatusClass = (status: string): string => {
-  const statusClasses: Record<string, string> = {
-    'open': 'bg-yellow-100 text-yellow-800',
-    'in_progress': 'bg-blue-100 text-blue-800',
-    'resolved': 'bg-green-100 text-green-800',
-    'closed': 'bg-gray-100 text-gray-800'
-  };
-  return statusClasses[status] || 'bg-gray-100 text-gray-800';
-};
-
-// Загрузка данных при монтировании компонента
-onMounted(async () => {
-  loading.value = true;
   
-  try {
-    // Загружаем статистику через специализированный API
-    try {
-      const statsApi = await import('@/api/stats').then(m => m.useStatsApi());
-      const dashboardStats = await statsApi.getDashboardStats('global');
-      console.log('Получены данные статистики:', dashboardStats);
-      
-      // Обновляем статистику с учетом возможных undefined полей
-      // Создаем новый объект вместо прямого присваивания
-      const statsData: DashboardStats = { 
-        players: { total: 0 },
-        cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0, activeCases: 0 },
-        weeklyActions: 0
-      };
-      
-      // Копируем данные из ответа API, если они есть
-      if (dashboardStats) {
-        // Безопасное копирование данных игроков
-        if (dashboardStats.players && typeof dashboardStats.players === 'object') {
-          if (typeof dashboardStats.players.total === 'number') {
-            statsData.players!.total = dashboardStats.players.total;
-          }
-        }
-        
-        // Безопасное копирование данных кейсов
-        if (dashboardStats.cases && typeof dashboardStats.cases === 'object') {
-          if (typeof dashboardStats.cases.total === 'number') {
-            statsData.cases!.total = dashboardStats.cases.total;
-          }
-          if (typeof dashboardStats.cases.open === 'number') {
-            statsData.cases!.open = dashboardStats.cases.open;
-          }
-          if (typeof dashboardStats.cases.in_progress === 'number') {
-            statsData.cases!.in_progress = dashboardStats.cases.in_progress;
-          }
-          if (typeof dashboardStats.cases.closed === 'number') {
-            statsData.cases!.closed = dashboardStats.cases.closed;
-          }
-          if (typeof dashboardStats.cases.resolved === 'number') {
-            statsData.cases!.resolved = dashboardStats.cases.resolved;
-          }
-          
-          // Рассчитываем активные кейсы как сумму открытых и в прогрессе
-          statsData.cases!.activeCases = statsData.cases!.open + statsData.cases!.in_progress;
-        }
-        
-        // Безопасное копирование количества действий за неделю
-        if ('weeklyActions' in dashboardStats && 
-            typeof (dashboardStats as any).weeklyActions === 'number') {
-          statsData.weeklyActions = (dashboardStats as any).weeklyActions;
-        }
-      }
-      
-      // Присваиваем созданный объект
-      stats.value = statsData;
-      
-    } catch (error) {
-      console.error('Ошибка при загрузке статистики:', error);
-      // Статистика останется по умолчанию
-    }
-    
-    // Загружаем данные через API для кейсов
-    const casesApi = await import('@/api/cases').then(m => m.useCasesApi());
-    
-    // Получаем реальные кейсы
-    try {
-      // Используем метод для получения доступных кейсов - ограничиваем 5 последними
-      const response = await casesApi.getAccessibleCases({ limit: 5 });
-      
-      // Проверяем формат ответа API
-      if (response && response.results && Array.isArray(response.results)) {
-        // Получаем массив кейсов из response.results
-        const accessibleCases = response.results as CaseResponse[];
-        
-        // Обрабатываем данные
-        recentCases.value = accessibleCases.map(caseItem => ({
-          id: caseItem.id || '',
-          title: caseItem.title || 'Без названия',
-          status: caseItem.status || 'unknown',
-          player_name: caseItem.player_name || (caseItem.player ? caseItem.player.full_name : ''),
-          created_at: caseItem.created_at
-        }));
-        
-        // Если статистика не была загружена через специализированный API,
-        // используем запасной вариант на основе кейсов
-        if (stats.value.cases && (
-            !stats.value.cases.total || 
-            !stats.value.cases.open ||
-            !stats.value.cases.in_progress || 
-            !stats.value.cases.closed)) {
-          try {
-            // Запрашиваем только количество кейсов без данных
-            const activeCases = await casesApi.getAccessibleCases({ status: 'open,in_progress', limit: 0 });
-            const closedCases = await casesApi.getAccessibleCases({ status: 'closed,resolved', limit: 0 });
-            
-            // Обновляем статистику, если есть данные из API
-            if (stats.value.cases) {
-              if (activeCases && typeof activeCases.count === 'number') {
-                stats.value.cases.open = Math.max(
-                  stats.value.cases.open,
-                  accessibleCases.filter(c => c.status === 'open').length
-                );
-              }
-              
-              stats.value.cases.in_progress = Math.max(
-                stats.value.cases.in_progress,
-                accessibleCases.filter(c => c.status === 'in_progress').length
-              );
-              
-              if (closedCases && typeof closedCases.count === 'number') {
-                stats.value.cases.closed = Math.max(
-                  stats.value.cases.closed,
-                  accessibleCases.filter(c => c.status === 'closed').length
-                );
-              }
-              
-              // Пересчитываем общее количество кейсов
-              stats.value.cases.total = stats.value.cases.open + 
-                                  stats.value.cases.in_progress + 
-                                  stats.value.cases.closed +
-                                  stats.value.cases.resolved;
-              
-              // Обновляем активные кейсы
-              stats.value.cases.activeCases = stats.value.cases.open + stats.value.cases.in_progress;
-            }
-          } catch (error) {
-            console.error('Ошибка при загрузке статистики кейсов:', error);
-          }
-        }
-      } else {
-        console.error('API вернул данные в неожиданном формате:', response);
-        recentCases.value = [];
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке кейсов:', error);
-      recentCases.value = [];
-    }
-    
-    // Если статистика игроков не была загружена через специализированный API
-    if (stats.value.players && !stats.value.players.total) {
-      try {
-        const playersApi = await import('@/api/players').then(m => m.usePlayersApi());
-        const playerStats = await playersApi.getPlayersCount();
-        
-        // Обновляем статистику
-        if (stats.value.players) {
-          stats.value.players.total = playerStats && playerStats.count || 0;
-        
-          // Если не получили статистику, загружаем все игроки и считаем
-          if (stats.value.players.total === 0) {
-            const allPlayers = await playersApi.getPlayers();
-            stats.value.players.total = allPlayers && Array.isArray(allPlayers) ? allPlayers.length : 0;
-          }
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке статистики игроков:', error);
-      }
-    }
-    
-    // Загружаем последние активности через API аудита, если он доступен
-    try {
-      // Добавим проверку на возможные ошибки сетевого взаимодействия
-      const auditApi = await import('@/api/audit').then(m => m.useAuditApi());
-      
-      try {
-        const response = await auditApi.getRecentActivity(5);
-        
-        if (response && Array.isArray(response)) {
-          activities.value = response.map(activity => ({
-            id: activity.id || String(Date.now()),
-            description: activity.description || activity.action || 'Неизвестное действие',
-            created_at: activity.created_at || new Date().toISOString(),
-            user: activity.user_name || 'Система'
-          }));
-          
-          // Обновляем количество действий за неделю, если оно не установлено
-          if (!stats.value.weeklyActions && activities.value.length > 0) {
-            stats.value.weeklyActions = activities.value.length;
-          }
-        } else {
-          console.warn('API аудита вернул данные в неожиданном формате, использую резервные данные');
-          generateFallbackActivities();
-        }
-      } catch (error) {
-        console.warn('Ошибка при обращении к API аудита, использую резервные данные:', error);
-        generateFallbackActivities();
-      }
-    } catch (error) {
-      console.warn('API аудита недоступен, использую резервные данные:', error);
-      generateFallbackActivities();
-    }
-    
-  } catch (error) {
-    console.error('Общая ошибка при загрузке данных:', error);
-    // Сбрасываем значения в случае ошибки
-    recentCases.value = [];
-    activities.value = [];
-    stats.value = { 
-      players: { total: 0 },
-      cases: { total: 0, open: 0, in_progress: 0, closed: 0, resolved: 0, activeCases: 0 },
-      weeklyActions: 0
-    };
-  } finally {
-    loading.value = false;
-  }
+  // Сбрасываем форму и закрываем модальное окно
+  newCase.value = {
+    title: '',
+    description: '',
+    priority: 'medium'
+  };
+  
+  showNewCaseModal.value = false;
+};
+
+// Имитация загрузки данных
+onMounted(() => {
+  setTimeout(() => {
+    isLoading.value = false;
+  }, 1500);
 });
-
-// Добавим функцию для генерации активностей из имеющихся данных
-function generateFallbackActivities() {
-  // Инициализируем пустой массив на случай, если recentCases.value не определен
-  activities.value = [];
-  
-  // Используем последние кейсы для генерации активностей
-  if (recentCases.value && recentCases.value.length > 0) {
-    activities.value = recentCases.value.slice(0, 5).map((caseItem, index) => {
-      // Создаем разные типы активностей с разными датами
-      const activityDate = new Date();
-      activityDate.setHours(activityDate.getHours() - index * 2); // Разные временные метки
-      
-      // Генерируем несколько типов событий для разнообразия
-      const activityTypes = [
-        `Кейс "${caseItem.title}" был создан`,
-        `Кейс "${caseItem.title}" был обновлен`,
-        `Изменен статус кейса "${caseItem.title}" на "${getStatusText(caseItem.status)}"`,
-        `Добавлен комментарий к кейсу "${caseItem.title}"`,
-        `Добавлено доказательство к кейсу "${caseItem.title}"`
-      ];
-      
-      return {
-        id: `activity-${caseItem.id}-${index}`,
-        description: activityTypes[index % activityTypes.length],
-        created_at: activityDate.toISOString(),
-        user: 'Система'
-      };
-    });
-    
-    // Если обновили активности, обновим и статистику
-    if (activities.value.length > 0 && !stats.value.weeklyActions) {
-      stats.value.weeklyActions = activities.value.length;
-    }
-  } else {
-    // Если нет кейсов, создаем базовые активности
-    const now = new Date();
-    activities.value = [
-      {
-        id: 'system-activity-1',
-        description: 'Система инициализирована',
-        created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 день назад
-        user: 'Система'
-      },
-      {
-        id: 'system-activity-2',
-        description: 'Выполнено обновление системы',
-        created_at: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(), // 12 часов назад
-        user: 'Система'
-      },
-      {
-        id: 'system-activity-3',
-        description: 'Выполнено ежедневное обслуживание',
-        created_at: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), // 6 часов назад
-        user: 'Система'
-      }
-    ];
-    
-    // Обновляем статистику действий за неделю
-    if (!stats.value.weeklyActions) {
-      stats.value.weeklyActions = activities.value.length;
-    }
-  }
-}
-
-// Форматирование даты и времени
-function formatDateTime(dateString: string): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (e) {
-    return dateString;
-  }
-}
 </script>
 
 <style scoped>
-.dashboard {
-  padding: 1.5rem;
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: var(--color-background-light);
+  position: relative;
 }
 
-.action-btn {
-  transition: all 0.2s ease;
+.action-block {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease-in-out;
 }
 
-.action-btn:hover {
+.action-block:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.version-info-wrapper {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+  
+  .version-info-wrapper {
+    bottom: 0.5rem;
+    right: 0.5rem;
+  }
 }
 </style> 
