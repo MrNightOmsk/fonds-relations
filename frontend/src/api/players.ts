@@ -65,6 +65,106 @@ export function usePlayersApi() {
     },
 
     /**
+     * Получить игроков с поддержкой пагинации, поиска и фильтрации
+     * @param params Параметры запроса (skip, limit, search и др.)
+     * @returns Объект с результатами и общим количеством
+     */
+    async getAccessiblePlayers(params?: any): Promise<{ results: Player[], count: number }> {
+      try {
+        // Настраиваем параметры запроса
+        const requestParams = { ...params };
+        
+        // Если не указан лимит, устанавливаем значение по умолчанию
+        if (!requestParams.limit && requestParams.limit !== 0) {
+          requestParams.limit = 12; // Значение по умолчанию для игроков
+        }
+        
+        // Убеждаемся, что параметр skip является числом
+        if (requestParams.skip !== undefined) {
+          requestParams.skip = Number(requestParams.skip);
+        }
+        
+        console.log('Запрос на получение игроков с параметрами:', JSON.stringify(requestParams));
+        console.log('URL запроса:', `${baseUrl}?${new URLSearchParams(requestParams).toString()}`);
+        
+        // Получаем игроков с учетом параметров
+        let response;
+        try {
+          response = await api.get(baseUrl, { params: requestParams });
+          console.log('Статус ответа API:', response.status);
+          console.log('Тип данных в ответе:', typeof response.data);
+          console.log('Получен ответ от API игроков:', 
+            Array.isArray(response.data) 
+              ? `[Array с ${response.data.length} элементами]` 
+              : JSON.stringify(response.data).substring(0, 200) + '...');
+        } catch (networkError) {
+          console.error('Ошибка сети при получении игроков:', networkError);
+          
+          if (networkError.response) {
+            console.error('Статус ответа:', networkError.response.status);
+            console.error('Тело ответа:', JSON.stringify(networkError.response.data).substring(0, 500));
+          } else if (networkError.request) {
+            console.error('Запрос был отправлен, но ответ не получен');
+          } else {
+            console.error('Ошибка при настройке запроса:', networkError.message);
+          }
+          
+          // В случае ошибки сети возвращаем пустые данные
+          return { results: [], count: 0 };
+        }
+        
+        // Логируем структуру ответа для отладки
+        console.log('Структура ответа API:', 
+          Array.isArray(response.data) 
+            ? 'Array' 
+            : Object.keys(response.data).join(', '));
+        
+        // Если API возвращает массив, преобразуем в нужный формат
+        if (Array.isArray(response.data)) {
+          console.log('API вернул массив игроков напрямую, конвертируем в ожидаемый формат');
+          return {
+            results: response.data,
+            count: response.headers['x-total-count'] 
+              ? parseInt(response.headers['x-total-count'], 10) 
+              : response.data.length
+          };
+        }
+        
+        // Если API возвращает объект с полями results и count
+        if (response.data.results && response.data.count !== undefined) {
+          console.log('API вернул объект с полями results и count');
+          return {
+            results: response.data.results,
+            count: response.data.count
+          };
+        }
+        
+        // Если API возвращает объект с полями items и total
+        if (response.data.items && response.data.total !== undefined) {
+          console.log('API вернул объект с полями items и total');
+          return {
+            results: response.data.items,
+            count: response.data.total
+          };
+        }
+        
+        // Для других форматов ответа - логируем и возвращаем безопасное значение
+        console.warn('API игроков вернул неожиданный формат данных:', JSON.stringify(response.data).substring(0, 200));
+        return {
+          results: Array.isArray(response.data) ? response.data : [],
+          count: Array.isArray(response.data) ? response.data.length : 0
+        };
+      } catch (error) {
+        console.error('Критическая ошибка при получении игроков:', error);
+        if (error instanceof Error) {
+          console.error('Сообщение ошибки:', error.message);
+          console.error('Стек ошибки:', error.stack);
+        }
+        return { results: [], count: 0 };
+      }
+    },
+
+    /**
      * Получить игрока по ID
      */
     async getPlayerById(id: string): Promise<Player> {

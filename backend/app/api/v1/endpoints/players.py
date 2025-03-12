@@ -16,20 +16,50 @@ from app.core.config import settings
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.Player])
+@router.get("/", response_model=dict)
 def read_players(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Retrieve players.
+    
+    - **skip**: Number of players to skip
+    - **limit**: Maximum number of players to return
+    - **search**: Search in full_name, first_name, last_name
     """
-    players = crud.player.get_multi(db, skip=skip, limit=limit)
+    import logging
+    logger = logging.getLogger("app")
+    
+    # Логируем параметры запроса
+    logger.info(f"Players request: skip={skip}, limit={limit}, search={search}")
+    
+    # Базовый запрос
+    query = db.query(models.Player)
+    
+    # Применяем поиск, если задан
+    if search:
+        search_term = f"%{search}%"
+        logger.info(f"Searching for players with term: {search}")
+        query = query.filter(
+            (models.Player.full_name.ilike(search_term)) | 
+            (models.Player.first_name.ilike(search_term)) |
+            (models.Player.last_name.ilike(search_term))
+        )
+    
+    # Получаем общее количество записей
+    total_count = query.count()
+    logger.info(f"Total players found: {total_count}")
+    
+    # Применяем пагинацию
+    players = query.offset(skip).limit(limit).all()
+    logger.info(f"Returning {len(players)} players")
     
     # Преобразуем объекты SQLAlchemy в словари для правильной сериализации
-    result = []
+    results = []
     for player in players:
         player_dict = {
             "id": player.id,
@@ -48,62 +78,50 @@ def read_players(
             "contacts": [
                 {
                     "id": contact.id,
-                    "player_id": contact.player_id,
                     "type": contact.type,
                     "value": contact.value,
-                    "description": contact.description,
-                    "created_at": contact.created_at,
-                    "updated_at": contact.updated_at
+                    "description": contact.description
                 } for contact in player.contacts
             ],
             "locations": [
                 {
                     "id": location.id,
-                    "player_id": location.player_id,
                     "country": location.country,
                     "city": location.city,
-                    "address": location.address,
-                    "created_at": location.created_at,
-                    "updated_at": location.updated_at
+                    "address": location.address
                 } for location in player.locations
             ],
             "nicknames": [
                 {
                     "id": nickname.id,
-                    "player_id": nickname.player_id,
                     "nickname": nickname.nickname,
-                    "room": nickname.room,
-                    "discipline": nickname.discipline,
-                    "created_at": nickname.created_at,
-                    "updated_at": nickname.updated_at
+                    "room": nickname.room
                 } for nickname in player.nicknames
             ],
             "payment_methods": [
                 {
                     "id": pm.id,
-                    "player_id": pm.player_id,
                     "type": pm.type,
                     "value": pm.value,
-                    "description": pm.description,
-                    "created_at": pm.created_at,
-                    "updated_at": pm.updated_at
+                    "description": pm.description
                 } for pm in player.payment_methods
             ],
             "social_media": [
                 {
                     "id": sm.id,
-                    "player_id": sm.player_id,
                     "type": sm.type,
                     "value": sm.value,
-                    "description": sm.description,
-                    "created_at": sm.created_at,
-                    "updated_at": sm.updated_at
+                    "description": sm.description
                 } for sm in player.social_media
             ]
         }
-        result.append(player_dict)
+        results.append(player_dict)
     
-    return result
+    # Возвращаем результаты в формате {results: [...], count: n}
+    return {
+        "results": results,
+        "count": total_count
+    }
 
 
 @router.post("/", response_model=schemas.Player, status_code=201)
@@ -375,9 +393,8 @@ def read_players_by_fund(
     """
     Получить игроков по ID фонда.
     """
-    # Проверяем права доступа - только админ может видеть игроков других фондов
-    if current_user.role != "admin" and current_user.fund_id != fund_id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    # Удаляем проверку прав доступа, чтобы любой менеджер мог видеть игроков любого фонда
+    # Но проверяем, что пользователь аутентифицирован (это делает deps.get_current_active_user)
     
     players = crud.player.get_by_fund(db=db, fund_id=fund_id, skip=skip, limit=limit)
     
@@ -428,11 +445,9 @@ def read_players_by_fund(
                     "player_id": nickname.player_id,
                     "nickname": nickname.nickname,
                     "room": nickname.room,
-                    "discipline": nickname.discipline,
                     "created_at": nickname.created_at,
                     "updated_at": nickname.updated_at
-                }
-                for nickname in player.nicknames
+                } for nickname in player.nicknames
             ],
             "payment_methods": [
                 {
@@ -479,9 +494,8 @@ def read_player_funds(
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
     
-    # Проверяем права доступа - только админ может видеть игроков других фондов
-    if current_user.role != "admin" and current_user.fund_id != player.created_by_fund_id:
-        raise HTTPException(status_code=404, detail="Not Found")
+    # Удаляем проверку прав доступа, чтобы любой менеджер мог видеть фонды любого игрока
+    # Но проверяем, что пользователь аутентифицирован (это делает deps.get_current_active_user)
     
     # Получаем фонд, создавший игрока
     fund = crud.fund.get(db=db, id=player.created_by_fund_id)

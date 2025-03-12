@@ -23,7 +23,6 @@
               type="text" 
               placeholder="Поиск по имени или никнейму..." 
               class="w-full px-3 py-2 pl-10 border border-border-light dark:border-border-dark rounded-md bg-white dark:bg-background-dark text-text-light dark:text-text-dark"
-              @input="filterPlayers"
             />
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="text-text-secondary-light dark:text-text-secondary-dark">🔍</span>
@@ -129,13 +128,27 @@
       </div>
     </div>
 
+    <!-- Информация о количестве -->
+    <div class="text-center text-text-secondary-light dark:text-text-secondary-dark mb-2">
+      Найдено игроков: {{ totalPlayersCount }}
+    </div>
+
     <!-- Пагинация -->
-    <div class="flex justify-center mt-6" v-if="totalPages > 1">
+    <div class="flex justify-center mt-4 mb-6" v-if="totalPages > 1">
       <div class="flex space-x-2">
         <button 
-          @click="currentPage > 1 && (currentPage--)" 
+          @click="goToPage(1)" 
           class="px-3 py-1 rounded border" 
-          :class="currentPage === 1 ? 'text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
+          :class="currentPage === 1 ? 'opacity-50 cursor-not-allowed text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
+          :disabled="currentPage === 1"
+        >
+          &laquo;
+        </button>
+        
+        <button 
+          @click="goToPage(currentPage - 1)" 
+          class="px-3 py-1 rounded border" 
+          :class="currentPage === 1 ? 'opacity-50 cursor-not-allowed text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
           :disabled="currentPage === 1"
         >
           &larr;
@@ -144,7 +157,7 @@
         <button 
           v-for="page in paginationPages" 
           :key="page" 
-          @click="currentPage = page" 
+          @click="goToPage(page)" 
           class="px-3 py-1 rounded border" 
           :class="currentPage === page ? 'bg-primary text-white border-primary dark:border-primary-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
         >
@@ -152,12 +165,21 @@
         </button>
         
         <button 
-          @click="currentPage < totalPages && (currentPage++)" 
+          @click="goToPage(currentPage + 1)" 
           class="px-3 py-1 rounded border" 
-          :class="currentPage === totalPages ? 'text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
+          :class="currentPage === totalPages ? 'opacity-50 cursor-not-allowed text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
           :disabled="currentPage === totalPages"
         >
           &rarr;
+        </button>
+        
+        <button 
+          @click="goToPage(totalPages)" 
+          class="px-3 py-1 rounded border" 
+          :class="currentPage === totalPages ? 'opacity-50 cursor-not-allowed text-text-secondary-light dark:text-text-secondary-dark border-border-light dark:border-border-dark' : 'text-primary dark:text-primary-dark border-primary dark:border-primary-dark hover:bg-primary/10 dark:hover:bg-primary-dark/20'"
+          :disabled="currentPage === totalPages"
+        >
+          &raquo;
         </button>
       </div>
     </div>
@@ -165,19 +187,15 @@
 </template>
 
 <script setup lang="ts">
-// @ts-ignore
-import { ref, computed, onMounted } from 'vue';
-// @ts-ignore
-import { useRouter } from 'vue-router';
-// @ts-ignore
-import { usePlayersApi } from '@/api/players';
-// @ts-ignore
+import { ref, computed, onMounted, watch, reactive } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-// @ts-ignore
+import { usePlayersApi } from '@/api/players';
 import type { Player } from '@/types/models';
 
 const router = useRouter();
-const playersApi = usePlayersApi();
+const route = useRoute();
+const playersApi = ref<any>(null);
 const authStore = useAuthStore();
 
 // Состояние
@@ -187,88 +205,156 @@ const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 12;
 const playerCases = ref<Record<string, any>>({});
+const totalPlayersCount = ref(0);
 
 // Проверка прав на создание игроков
 const userCanCreatePlayers = computed(() => {
   return authStore.isAdmin || authStore.user?.role === 'manager';
 });
 
-// Функция загрузки данных
+// Функция загрузки данных с сервера с учетом фильтров и пагинации
 const loadPlayers = async () => {
   loading.value = true;
+  
   try {
-    players.value = await playersApi.getPlayers();
+    // Инициализируем API, если еще не сделано
+    if (!playersApi.value) {
+      playersApi.value = (await import('@/api/players')).usePlayersApi();
+      console.log('API игроков инициализирован');
+    }
+    
+    // Формируем параметры запроса
+    const params: any = {
+      skip: (currentPage.value - 1) * itemsPerPage, // вычисляем skip на основе страницы и лимита
+      limit: itemsPerPage,
+    };
+    
+    // Добавляем поисковый запрос, если он задан
+    if (searchQuery.value.trim()) {
+      params.search = searchQuery.value.trim();
+    }
+    
+    console.log('Отправка запроса к API игроков с параметрами:', params);
+    console.log('URL запроса:', `/players?${new URLSearchParams(params).toString()}`);
+    
+    // Получаем данные с сервера с учетом пагинации
+    const response = await playersApi.value.getAccessiblePlayers(params);
+    
+    console.log('Получен ответ от API:', response);
+    console.log('Структура ответа:', Object.keys(response));
+    
+    // Проверяем формат ответа
+    if (Array.isArray(response)) {
+      console.log('API вернул массив напрямую, конвертируем в ожидаемый формат');
+      players.value = response;
+      totalPlayersCount.value = response.length;
+    } else {
+      // Обновляем данные и общее количество
+      players.value = response.results || [];
+      totalPlayersCount.value = response.count || 0;
+    }
+    
+    console.log(`Загружено ${players.value.length} игроков из ${totalPlayersCount.value}`);
+    console.log('Текущая страница:', currentPage.value);
+    console.log('Всего страниц:', totalPages.value);
+    
+    // Обновляем URL для сохранения состояния
+    updateUrlParams();
+    
     await fetchPlayerCases();
   } catch (error) {
     console.error('Ошибка при загрузке игроков:', error);
+    if (error instanceof Error) {
+      console.error('Детали ошибки:', error.message);
+      console.error('Стек ошибки:', error.stack);
+    }
+    players.value = [];
+    totalPlayersCount.value = 0;
   } finally {
     loading.value = false;
   }
 };
 
-// Фильтрация игроков
-const filterPlayers = () => {
-  currentPage.value = 1; // Сбрасываем пагинацию при поиске
+// Переход на указанную страницу
+const goToPage = (page: number) => {
+  currentPage.value = page;
 };
 
-// Фильтрованные игроки
-const filteredPlayers = computed(() => {
-  let result = players.value;
+// Обновление URL-параметров для сохранения состояния фильтрации и пагинации
+function updateUrlParams() {
+  const params = new URLSearchParams();
   
-  // Фильтрация по поисковому запросу
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(player => {
-      // Поиск по полному имени
-      if (player.full_name && player.full_name.toLowerCase().includes(query)) {
-        return true;
-      }
-      
-      // Поиск по никнеймам
-      if (player.nicknames && player.nicknames.some(n => n.nickname.toLowerCase().includes(query))) {
-        return true;
-      }
-      
-      // Поиск по контактам
-      if (player.contacts && player.contacts.some(c => c.value && c.value.toLowerCase().includes(query))) {
-        return true;
-      }
-      
-      return false;
-    });
+  if (currentPage.value > 1) {
+    params.set('page', currentPage.value.toString());
+    // Добавляем также параметр skip для отладки (он не используется для навигации пользователя)
+    params.set('debug_skip', ((currentPage.value - 1) * itemsPerPage).toString());
   }
   
-  // Удаляем фильтрацию по фонду - все менеджеры должны видеть всех игроков
-  // в соответствии с новыми требованиями
+  if (searchQuery.value.trim()) {
+    params.set('search', searchQuery.value.trim());
+  }
   
-  return result;
-});
+  const queryString = params.toString();
+  const newUrl = queryString 
+    ? `${window.location.pathname}?${queryString}` 
+    : window.location.pathname;
+  
+  window.history.replaceState({}, '', newUrl);
+  
+  console.log('URL обновлен:', newUrl);
+  console.log('Текущие параметры:', {
+    page: currentPage.value,
+    skip: (currentPage.value - 1) * itemsPerPage,
+    search: searchQuery.value.trim() || undefined,
+    limit: itemsPerPage
+  });
+}
 
-// Пагинация
+// Определяем, какие игроки отображаются на текущей странице
 const paginatedPlayers = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  return filteredPlayers.value.slice(startIndex, endIndex);
+  return players.value;
 });
 
 // Общее количество страниц
 const totalPages = computed(() => {
-  return Math.ceil(filteredPlayers.value.length / itemsPerPage);
+  return Math.max(1, Math.ceil(totalPlayersCount.value / itemsPerPage));
 });
 
 // Номера страниц для пагинации
 const paginationPages = computed(() => {
-  const pages: number[] = [];
-  const maxVisiblePages = 5;
-  let startPage = Math.max(1, currentPage.value - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages.value, startPage + maxVisiblePages - 1);
+  const total = totalPages.value;
+  const current = currentPage.value;
   
-  if (endPage - startPage + 1 < maxVisiblePages) {
-    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
   }
   
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(i);
+  // Когда много страниц, показываем только часть с многоточиями
+  const pages: Array<number | string> = [];
+  
+  if (current <= 3) {
+    // В начале списка
+    for (let i = 1; i <= 5; i++) {
+      pages.push(i);
+    }
+    pages.push('...');
+    pages.push(total);
+  } else if (current >= total - 2) {
+    // В конце списка
+    pages.push(1);
+    pages.push('...');
+    for (let i = total - 4; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    // В середине списка
+    pages.push(1);
+    pages.push('...');
+    for (let i = current - 1; i <= current + 1; i++) {
+      pages.push(i);
+    }
+    pages.push('...');
+    pages.push(total);
   }
   
   return pages;
@@ -345,9 +431,30 @@ async function fetchPlayerCases() {
   }
 }
 
-// Хуки жизненного цикла
-onMounted(() => {
+// Изменяем watch, чтобы отслеживать изменения поискового запроса
+watch(searchQuery, () => {
+  currentPage.value = 1;
   loadPlayers();
+});
+
+// Загрузка данных при изменении страницы
+watch(currentPage, () => {
+  loadPlayers();
+});
+
+// Инициализация при монтировании компонента
+onMounted(async () => {
+  // Получаем параметры из URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const page = Number(urlParams.get('page')) || 1;
+  const search = urlParams.get('search') || '';
+  
+  // Устанавливаем параметры поиска
+  currentPage.value = page;
+  searchQuery.value = search;
+  
+  // Загружаем данные
+  await loadPlayers();
 });
 </script>
 
