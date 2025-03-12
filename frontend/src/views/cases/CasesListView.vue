@@ -118,7 +118,7 @@
               </span>
             </div>
             <div class="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-              <p v-if="case_item.player_name">Игрок: {{ case_item.player_name }}</p>
+              <p>Игрок: {{ case_item.player_name || 'Не указан' }}</p>
               <p>Тип: {{ getCaseTypeName(case_item.case_type_id) }}</p>
               <p>Создан: {{ formatDate(case_item.created_at) }}</p>
               <p v-if="case_item.is_arbitrage">
@@ -390,6 +390,33 @@ const loadCases = async () => {
     
     // Добавляем проверку, чтобы видеть, какие параметры и ответ получаем
     console.log('API ответ:', response);
+    
+    // Обрабатываем данные, добавляя поле player_name из объекта player
+    cases.value = cases.value.map(caseItem => {
+      // Извлекаем имя игрока из объекта player, если он существует
+      if (caseItem.player && caseItem.player.full_name) {
+        caseItem.player_name = caseItem.player.full_name;
+      } else {
+        caseItem.player_name = 'Не указан';
+      }
+      return caseItem;
+    });
+    
+    // Проверяем наличие player_name в полученных данных
+    if (cases.value.length > 0) {
+      console.log('Пример первого кейса:', cases.value[0]);
+      console.log('player_name в первом кейсе:', cases.value[0].player_name);
+      console.log('Все ключи первого кейса:', Object.keys(cases.value[0]));
+      console.log('Значение player_id:', cases.value[0].player_id);
+      
+      // Добавим скрипт, который выведет таблицу всех ID кейсов и их player_name
+      console.table(cases.value.map(c => ({ 
+        id: c.id, 
+        title: c.title,
+        player_id: c.player_id, 
+        player_name: c.player_name || 'НЕ УКАЗАН' 
+      })));
+    }
     
     // Обогащаем данные типами кейсов, если они загружены
     if (cases.value.length > 0 && caseTypes.value && caseTypes.value.length > 0) {
